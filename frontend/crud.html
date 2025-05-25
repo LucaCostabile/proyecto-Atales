@@ -6,23 +6,112 @@
     <title>CRUD de Productos - Atales</title>
     <link rel="stylesheet" href="css/styles.css">
     <style>
-        .sucursal-header {
-            background-color: #e63946;
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+        }
+
+        header .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 15px;
+            background-color: #e74c3c;
             color: white;
-            padding: 10px;
-            border-radius: 5px;
+        }
+
+        header .logo img {
+            height: 80px;
+            width: auto;
+            object-fit: contain;
+     }
+
+        main {
+            width: 90%;
+            max-width: 1400px;
+            margin: 30px auto;
+            padding: 30px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+
+        .sucursal-header {
+            background-color: #e74c3c !important;
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            min-height: 80px;
+        }
+
+        .form-grupo {
+            background-color: #f9f9f9;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
+            width: 90%; /* opcional para que no ocupe todo */
+            margin-left: 0; /* mueve hacia la izquierda */
+        }
+
+        select, input {
+            padding: 16px;
+            border-radius: 4px;
+            border: 1px solid #222222;
+        }
+
+        .botones {
             margin-bottom: 20px;
         }
-        .form-grupo {
-            display: grid;
-            grid-template-columns: 1fr 1fr 120px 150px auto;
-            gap: 10px;
-            align-items: center;
+
+        .boton {
+            display: inline-block;
+            padding: 10px 15px;
+            background-color: #e74c3c;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-right: 10px;
         }
-        select {
-            padding: 8px;
-            border-radius: 4px;
+
+        h2 {
+            color: #ffffff;
+        }
+
+        h3 {
+            color: #000000;
+        }
+
+        .tabla-contenedor {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
             border: 1px solid #ccc;
+            padding: 8px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #a8dadc;
+        }
+
+        footer {
+            text-align: center;
+            padding: 15px;
+            background-color: #333;
+            color: white;
+            margin-top: 30px;
+        }
+        body {
+            overflow-x: hidden;
         }
     </style>
 </head>
@@ -65,12 +154,11 @@
             </div>
         </form>
 
-        <h2>Lista de Productos</h2>
+        <h3>Lista de Productos</h3>
         <div class="tabla-contenedor">
             <table>
                 <thead>
                     <tr>
-                        <th>ID</th>
                         <th>Nombre</th>
                         <th>Precio</th>
                         <th>Cantidad</th>
@@ -112,3 +200,4 @@
     <script src="js/auth.js"></script>
 </body>
 </html>
+
