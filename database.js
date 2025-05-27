@@ -3,11 +3,11 @@ require('dotenv').config();
 
 // Configuración de la conexión MySQL usando Railway
 const pool = mysql.createPool({
-  host: process.env.MYSQLHOST || 'mysql.railway.internal',
+  host: process.env.MYSQLHOST || 'mysql://root:NONloUmSWeZoPPBfOxQLCQErTbIOwOqi@switchyard.proxy.rlwy.net:11045/railway',
   user: process.env.MYSQLUSER || 'root',
   password: process.env.MYSQLPASSWORD || 'NONloUmSWeZoPPBfOxQLCQErTbIOwOqi',
   database: process.env.MYSQLDATABASE || 'railway',
-  port: process.env.MYSQLPORT || 3306,
+  port: process.env.MYSQLPORT || 11045,
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0
