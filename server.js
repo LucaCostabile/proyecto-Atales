@@ -25,10 +25,18 @@ const authLimiter = rateLimit({
 });
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: ['http://localhost:3000', 'https://4591-2803-9800-b842-7ebd-9408-358c-b27c-6b80.ngrok-free.app'], // Asegúrate de actualizar la URL de Ngrok
+  credentials: true
+}));
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, 'frontend')));
 app.use(generalLimiter);
+app.use((req, res, next) => {
+    res.setHeader('Cache-Control', 'no-store');
+    next();
+});
+
 
 // **QUITAMOS el middleware de autenticación** y no usamos `authenticateToken`
 
