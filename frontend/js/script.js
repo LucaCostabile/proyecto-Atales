@@ -359,53 +359,80 @@ if (resetPasswordForm) {
 }
 
 // Lógica para restablecer la contraseña con un token
-document.addEventListener('DOMContentLoaded', function () {
-  const newPasswordForm = document.getElementById('new-password-form');
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('new-password-form');
+    const tokenInput = document.getElementById('reset-token');
+    const newPasswordInput = document.getElementById('new-password');
+    const confirmPasswordInput = document.getElementById('confirm-password');
 
-  if (newPasswordForm) {
-      newPasswordForm.addEventListener('submit', async function (event) {
-          event.preventDefault(); // Evitar recarga de página
-
-          const newPassword = document.getElementById('new-password').value;
-          const confirmPassword = document.getElementById('confirm-password').value;
-
-          if (newPassword !== confirmPassword) {
-              alert('Las contraseñas no coinciden');
-              return;
-          }
-
-          // Obtener el token desde la URL
-          const pathParts = window.location.pathname.split('/');
-          const resetToken = pathParts[pathParts.length - 1];
-
-          console.log('Restableciendo la contraseña con el token:', resetToken);
-
-          if (!resetToken) {
-              alert('Token de restablecimiento no encontrado.');
-              return;
-          }
-
-          const response = await fetch('http://localhost:3000/reset/confirm-reset-password', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ resetToken, newPassword })
-          });
-
-          const result = await response.json();
-          console.log('Resultado del restablecimiento:', result);
-
-          if (response.ok) {
-            alert('Contraseña restablecida con éxito');
-            localStorage.removeItem('resetToken');  // Eliminar token almacenado
-            window.location.replace('/login.html');  // Redirigir sin que recuerde la página anterior
-          } else {
-              console.error(`Error: ${result.error || result.message}`);
-              alert(`Error: ${result.error || result.message}`);
-          }
+    // Extraer token de la URL
+    const getTokenFromURL = () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        let token = urlParams.get('token');
         
-      });
-  } else {
-      console.log('ℹ️ No se encontró el formulario de restablecimiento. Esto es normal si no estás en la página de restablecimiento.');
-  }
+        if (!token) {
+            const pathParts = window.location.pathname.split('/');
+            token = pathParts[pathParts.length - 1];
+        }
+
+        return token;
+    };
+
+    // Validar contraseñas
+    const validatePasswords = () => {
+        return newPasswordInput.value === confirmPasswordInput.value;
+    };
+
+    // Manejar envío del formulario
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+
+        if (!validatePasswords()) {
+            alert('Las contraseñas no coinciden');
+            return;
+        }
+
+        const token = tokenInput.value;
+        if (!token) {
+            alert('Token de restablecimiento no válido');
+            return;
+        }
+
+        try {
+            const response = await fetch('http://localhost:3000/reset/confirm-reset-password', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    resetToken: token,
+                    newPassword: newPasswordInput.value
+                })
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                alert('Contraseña restablecida con éxito');
+                window.location.href = '/login.html';
+            } else {
+                throw new Error(result.error || 'Error al restablecer la contraseña');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert(error.message);
+        }
+    };
+
+    // Inicialización
+    const token = getTokenFromURL();
+    if (!token) {
+        alert('Token no encontrado en la URL');
+        window.location.href = '/login.html';
+        return;
+    }
+
+    tokenInput.value = token;
+    form.addEventListener('submit', handleSubmit);
 });
 

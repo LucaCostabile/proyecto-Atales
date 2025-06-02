@@ -1,19 +1,16 @@
 const mysql = require('mysql2/promise');
 require('dotenv').config();
 
-// Configuración de la conexión MySQL usando Railway
+// Configuración de la conexión MySQL
 const pool = mysql.createPool({
-  host: 'switchyard.proxy.rlwy.net', // Cambia esto
-  user: process.env.MYSQLUSER || 'root',
-  password: process.env.MYSQLPASSWORD || '',
-  database: process.env.MYSQLDATABASE || 'railway',
-  port: 11045, // Usa el puerto de la URL pública
+  host: process.env.DB_HOST || 'localhost',
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASSWORD || '',
+  database: process.env.DB_NAME || 'atalesdb',
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0
 });
-
-module.exports = pool;
 
 // Función para inicializar la base de datos
 async function initializeDB() {
