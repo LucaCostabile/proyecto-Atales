@@ -165,7 +165,7 @@ app.get('/api/categorias', async (req, res) => {
 // Registrar nuevo cierre de caja
 app.post('/api/cierres-caja', async (req, res) => {
     try {
-        const { sucursal_id, total_productos, ganancias_totales } = req.body;
+        const { sucursal_id, total_productos, ganancias_totales, detalles } = req.body;
 
         const [result] = await db.query(
             'INSERT INTO cierres_caja SET ?',
@@ -173,6 +173,7 @@ app.post('/api/cierres-caja', async (req, res) => {
                 sucursal_id,
                 total_productos,
                 ganancias_totales,
+                detalles: detalles ? JSON.stringify(detalles) : null, // <--- GUARDA LOS DETALLES
                 fecha_registro: new Date()
             }
         );
@@ -204,7 +205,8 @@ app.get('/api/cierres-caja/:sucursalId', async (req, res) => {
                 CAST(c.total_productos AS SIGNED) as total_productos,
                 CAST(c.ganancias_totales AS DECIMAL(12,2)) as ganancias_totales,
                 c.fecha_registro,
-                s.nombre as sucursal
+                s.nombre as sucursal,
+                c.detalles
             FROM cierres_caja c
             JOIN sucursales s ON c.sucursal_id = s.id
             WHERE c.sucursal_id = ?
@@ -223,6 +225,20 @@ app.get('/api/cierres-caja/:sucursalId', async (req, res) => {
         query += ' ORDER BY c.fecha_registro DESC';
 
         const [rows] = await db.query(query, params);
+
+        // Parsear detalles si es string
+        for (const row of rows) {
+            if (row.detalles && typeof row.detalles === 'string') {
+                try {
+                    row.detalles = JSON.parse(row.detalles);
+                } catch (e) {
+                    row.detalles = [];
+                }
+            } else if (!row.detalles) {
+                row.detalles = [];
+            }
+        }
+
         res.json(rows);
 
     } catch (err) {

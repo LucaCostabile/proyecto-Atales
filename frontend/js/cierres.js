@@ -42,7 +42,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <td>${productos}</td>
                     <td>$${ganancias.toFixed(2)}</td>
                     <td>${new Date(cierre.fecha_registro).toLocaleString()}</td>
-                    <td><button onclick="verDetalles(${cierre.id})" class="boton-pequeno">Ver</button></td>
+                    <td>
+                        <button 
+                            onclick="verDetalles(${cierre.id}, this)" 
+                            class="boton-pequeno"
+                            data-detalles='${JSON.stringify(cierre.detalles || [])}'
+                        >Ver</button>
+                    </td>
                 `;
                 tabla.appendChild(tr);
 
@@ -69,8 +75,38 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Función global para ver detalles
-    window.verDetalles = (cierreId) => {
-        alert(`Detalles del cierre ${cierreId}\n(Implementa un modal bonito aquí)`);
+    window.verDetalles = (cierreId, btn) => {
+        let detalles = [];
+        try {
+            detalles = JSON.parse(btn.getAttribute('data-detalles'));
+        } catch (e) {
+            detalles = [];
+        }
+
+        let html = '';
+        if (Array.isArray(detalles) && detalles.length > 0) {
+            html += `<table style="width:100%; border-collapse:collapse;">
+                <tr>
+                    <th>Producto</th>
+                    <th>Cantidad</th>
+                    <th>Precio unitario</th>
+                    <th>Total</th>
+                </tr>`;
+            detalles.forEach(item => {
+                html += `<tr>
+                    <td>${item.nombre || '-'}</td>
+                    <td>${item.cantidad || '-'}</td>
+                    <td>$${item.precio_unitario ? Number(item.precio_unitario).toLocaleString() : '-'}</td>
+                    <td>$${item.total ? Number(item.total).toLocaleString() : '-'}</td>
+                </tr>`;
+            });
+            html += `</table>`;
+        } else {
+            html = '<p>No hay detalles de productos para este cierre.</p>';
+        }
+
+        document.getElementById('modal-detalles-contenido').innerHTML = html;
+        document.getElementById('modal-detalles').style.display = 'flex';
     };
 
     // Carga inicial
