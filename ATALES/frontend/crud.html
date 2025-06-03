@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRUD de Productos - Atales</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+        }
+
+        header .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 15px;
+            background-color: #e74c3c;
+            color: white;
+        }
+
+        header .logo img {
+            height: 80px;
+            width: auto;
+            object-fit: contain;
+     }
+
+        main {
+            width: 90%;
+            max-width: 1400px;
+            margin: 30px auto;
+            padding: 30px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+
+        .sucursal-header {
+            background-color: #e74c3c !important;
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            min-height: 80px;
+        }
+
+        .form-grupo {
+            background-color: #f9f9f9;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
+            width: 90%; /* opcional para que no ocupe todo */
+            margin-left: 0; /* mueve hacia la izquierda */
+        }
+
+        select, input {
+            padding: 16px;
+            border-radius: 4px;
+            border: 1px solid #222222;
+        }
+
+        .botones {
+            margin-bottom: 20px;
+        }
+
+        .boton {
+            display: inline-block;
+            padding: 10px 15px;
+            background-color: #e74c3c;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-right: 10px;
+        }
+
+        h2 {
+            color: #ffffff;
+        }
+
+        h3 {
+            color: #000000;
+        }
+
+        .tabla-contenedor {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #a8dadc;
+        }
+
+        footer {
+            text-align: center;
+            padding: 15px;
+            background-color: #333;
+            color: white;
+            margin-top: 30px;
+        }
+        body {
+            overflow-x: hidden;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <img src="assets/img/images.png" alt="Logo Atales">
+            <h1>Atales</h1>
+        </div>
+    </header>
+    
+    <main>
+        <!-- Encabezado dinámico -->
+        <div class="sucursal-header" id="sucursal-header">
+            <h2>Gestión de Productos</h2>
+            <p id="sucursal-info">Cargando información de sucursal...</p>
+        </div>
+        
+        <!-- Botón para volver -->
+        <div class="botones">
+            <a href="ubicacion.html" class="boton">Volver a Sucursales</a>
+            <a href="index.html" class="boton">Volver al Inicio</a>
+            <button id="abrir-cierre-caja" class="boton">Cierre de Caja</button>
+        </div>
+        
+        <!-- Formulario para agregar producto -->
+        <form id="producto-form" class="formulario">
+            <h3>Agregar Nuevo Producto</h3>
+            <div class="form-grupo">
+                <input type="text" id="nombre" placeholder="Nombre" required>
+                <input type="number" id="precio" placeholder="Precio" step="0.01" min="0" required>
+                <input type="number" id="cantidad" placeholder="Cantidad" min="0" value="0" required>
+                <select id="categoria" required>
+                    <option value="General">General</option>
+                    <option value="Electrónica">Electrónica</option>
+                    <option value="Alimentos">Alimentos</option>
+                    <option value="Limpieza">Limpieza</option>
+                    <option value="Bebidas">Bebidas</option>
+                </select>
+                <button type="submit" class="boton">Agregar</button>
+            </div>
+        </form>
+
+        <h3>Lista de Productos</h3>
+        <div class="tabla-contenedor">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Precio</th>
+                        <th>Cantidad</th>
+                        <th>Categoría</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="productos-lista"></tbody>
+            </table>
+        </div>
+    </main>
+    <div id="cierre-caja-modal" class="modal">
+        <div class="modal-contenido">
+            <span class="cerrar-modal">&times;</span>
+            <h2>Cierre de Caja - Sucursal <span id="sucursal-modal"></span></h2>
+            <div class="filtro-ventas">
+                <input type="text" id="buscar-producto" placeholder="Buscar por nombre o categoría..." class="input-busqueda">
+                <button id="limpiar-busqueda" class="boton-pequeno">Limpiar</button>
+            </div>
+            <div class="tabla-contenedor">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nombre</th>
+                            <th>Precio</th>
+                            <th>Stock</th>
+                            <th>Categoría</th>
+                            <th>Ventas</th>
+                        </tr>
+                    </thead>
+                    <tbody id="productos-venta"></tbody>
+                </table>
+            </div>
+            
+            <div class="resumen-venta">
+                <h3>Resumen de Ventas</h3>
+                <p>Total de productos vendidos: <span id="total-productos">0</span></p>
+                <p>Ganancias totales: $<span id="ganancias-totales">0.00</span></p>
+            </div>
+            
+            <div class="botones-modal">
+                <button id="cancelar-ventas" class="boton boton-secundario">Cancelar</button>
+                <button id="aplicar-ventas" class="boton">Aplicar Ventas</button>
+            </div>
+        </div>
+    </div>
+    <footer>
+        <p>&copy; 2024 Atales. Todos los derechos reservados.</p>
+    </footer>
+
+    <script>
+        // Configuración global única
+        if (!window.ATALES_CONFIG) {
+            window.ATALES_CONFIG = {
+                urlParams: new URLSearchParams(window.location.search),
+                sucursalId: new URLSearchParams(window.location.search).get('sucursal') || '1',
+                sucursales: {
+                    '1': { nombre: 'ATAL Centro', direccion: 'Paso de los Andes 1794' },
+                    '2': { nombre: 'ATAL Godoy Cruz', direccion: 'Talcahuano 2845' },
+                    '3': { nombre: 'ATAL Guaymallén', direccion: 'Elpidio González 2250' }
+                }
+            };
+        }
+
+        // Mostrar información de la sucursal
+        document.getElementById('sucursal-info').textContent = 
+            `${window.ATALES_CONFIG.sucursales[window.ATALES_CONFIG.sucursalId]?.nombre || 'Sucursal '+window.ATALES_CONFIG.sucursalId} - ${window.ATALES_CONFIG.sucursales[window.ATALES_CONFIG.sucursalId]?.direccion || ''}`;
+        
+        console.log('Configuración inicializada:', window.ATALES_CONFIG);
+    </script>
+
+    <script src="js/script.js"></script>
+    <script src="js/auth.js"></script>
+</body>
+</html>
+

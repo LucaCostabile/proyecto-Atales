@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Recuperar Contraseña - Atales</title>
+    <link rel="stylesheet" href="css/styles.css" />
+    <!-- Añadido un favicon opcional -->
+    <link rel="icon" href="assets/img/favicon.ico" type="image/x-icon" />
+</head>
+<body>
+    <header>
+        <div class="logo" role="banner">
+            <img src="assets/img/images.png" alt="Logo Atales" width="100" height="auto" />
+            <h1>Atales - Recuperar Contraseña</h1>
+        </div>
+    </header>
+    
+    <main role="main" aria-labelledby="titulo-principal" tabindex="-1">
+        <h2 id="titulo-principal">Recuperar contraseña</h2>
+        <p>Para restablecer tu contraseña, ingresa tu correo electrónico. Te enviaremos un enlace para que puedas cambiarla.</p>
+        <form id="reset-password-form" class="formulario" novalidate>
+            <div class="form-grupo">
+                <label for="email" class="sr-only"></label>
+                <input 
+                    type="email" 
+                    id="email" 
+                    name="email"
+                    placeholder="Correo electrónico" 
+                    required 
+                    autocomplete="email"
+                    aria-describedby="emailHelp"
+                />
+                <small id="emailHelp" class="form-text" style="color: #666; font-size: 0.85rem;">
+                    Asegúrate de ingresar tu correo registrado.
+                </small>
+            </div>
+            <button type="submit" class="boton" aria-label="Enviar enlace de restablecimiento de contraseña">
+                Enviar enlace de restablecimiento
+            </button>
+        </form>
+        <p style="margin-top: 1rem;">
+            <a href="login.html" title="Volver a la página de inicio de sesión">Volver a Iniciar sesión</a>
+        </p>
+    </main>
+
+    <footer role="contentinfo">
+        <p>&copy; 2024 Atales. Todos los derechos reservados.</p>
+    </footer>
+
+    <script src="js/script.js" defer></script>
+</body>
+</html>
+
