@@ -251,7 +251,7 @@ table button:hover {
 /* --- NUEVOS ESTILOS PARA LA PÁGINA DE INICIO DE SESIÓN --- */
 
 form#login-form.formulario {
-    max-width: 100%;
+    max-width: auto;
     margin: 0 auto;
     padding: 0;
     box-shadow: none;
