@@ -26,7 +26,10 @@ const authLimiter = rateLimit({
 
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:3000', 'https://4591-2803-9800-b842-7ebd-9408-358c-b27c-6b80.ngrok-free.app'], // Asegúrate de actualizar la URL de Ngrok
+  origin: [
+    'http://localhost:3000', // para desarrollo local
+    'https://proyecto-atales.onrender.com' // reemplaza por tu dominio real de Render
+  ],
   credentials: true
 }));
 app.use(bodyParser.json());

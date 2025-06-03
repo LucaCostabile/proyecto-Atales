@@ -44,7 +44,7 @@ router.post('/reset-password', async (req, res) => {
     );
 
     // Enviar correo con el enlace de restablecimiento
-    const resetLink = `http://localhost:3000/reset/reset-password/${token}`;
+    const resetLink = `/reset/reset-password/${token}`;
     
     // Configuración del email para Nodemailer
     const mailOptions = {
