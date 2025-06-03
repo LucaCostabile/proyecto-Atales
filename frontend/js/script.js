@@ -358,52 +358,49 @@ if (resetPasswordForm) {
     });
 }
 
-// Lógica para restablecer la contraseña con un token
+// reset-password-script.js - Versión completa y segura
 document.addEventListener('DOMContentLoaded', function() {
+    // Verificar que estamos en la página correcta
     const form = document.getElementById('new-password-form');
+    if (!form) return;
+
+    // Elementos del formulario
     const tokenInput = document.getElementById('reset-token');
     const newPasswordInput = document.getElementById('new-password');
     const confirmPasswordInput = document.getElementById('confirm-password');
 
-    // Extraer token de la URL
-    const getTokenFromURL = () => {
+    // Obtener token de la URL
+    const getToken = () => {
         const urlParams = new URLSearchParams(window.location.search);
-        let token = urlParams.get('token');
-        
-        if (!token) {
-            const pathParts = window.location.pathname.split('/');
-            token = pathParts[pathParts.length - 1];
-        }
-
-        return token;
+        return urlParams.get('token') || window.location.pathname.split('/').pop();
     };
 
     // Validar contraseñas
-    const validatePasswords = () => {
-        return newPasswordInput.value === confirmPasswordInput.value;
+    const validate = () => {
+        if (newPasswordInput.value !== confirmPasswordInput.value) {
+            alert('Las contraseñas no coinciden');
+            return false;
+        }
+        return true;
     };
 
     // Manejar envío del formulario
-    const handleSubmit = async (e) => {
+    form.addEventListener('submit', async (e) => {
         e.preventDefault();
+        
+        if (!validate()) return;
 
-        if (!validatePasswords()) {
-            alert('Las contraseñas no coinciden');
-            return;
-        }
-
-        const token = tokenInput.value;
+        const token = getToken();
         if (!token) {
-            alert('Token de restablecimiento no válido');
+            alert('Enlace inválido');
+            window.location.href = '/login.html';
             return;
         }
 
         try {
             const response = await fetch('http://localhost:3000/reset/confirm-reset-password', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     resetToken: token,
                     newPassword: newPasswordInput.value
@@ -411,28 +408,315 @@ document.addEventListener('DOMContentLoaded', function() {
             });
 
             const result = await response.json();
-
+            
             if (response.ok) {
-                alert('Contraseña restablecida con éxito');
+                alert('Contraseña actualizada');
                 window.location.href = '/login.html';
             } else {
-                throw new Error(result.error || 'Error al restablecer la contraseña');
+                throw new Error(result.error || 'Error al actualizar');
             }
         } catch (error) {
-            console.error('Error:', error);
             alert(error.message);
         }
-    };
+    });
 
-    // Inicialización
-    const token = getTokenFromURL();
-    if (!token) {
-        alert('Token no encontrado en la URL');
-        window.location.href = '/login.html';
+    // Asignar token al cargar
+    const token = getToken();
+    if (token) tokenInput.value = token;
+});
+
+// Para el modal de crud
+
+// Variables globales para el cierre de caja
+let productosVenta = [];
+
+// Función para abrir el modal de cierre de caja
+function abrirCierreCaja() {
+    const modal = document.getElementById('cierre-caja-modal');
+    modal.style.display = 'block';
+    cargarProductosParaVenta();
+}
+
+// Función para cerrar el modal
+function cerrarModal() {
+    const modal = document.getElementById('cierre-caja-modal');
+    modal.style.display = 'none';
+}
+
+// Función para cargar productos en el modal
+async function cargarProductosParaVenta() {
+    try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            alert('Por favor, inicia sesión para acceder a esta función.');
+            window.location.href = 'login.html';
+            return;
+        }
+
+        // Mostrar nombre de sucursal
+        document.getElementById('sucursal-modal').textContent = 
+            config.sucursales[config.sucursalId]?.nombre || `Sucursal ${config.sucursalId}`;
+
+        const res = await fetch(apiUrl, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!res.ok) throw new Error('Error al cargar productos');
+
+        productosVenta = await res.json();
+        const tbody = document.getElementById('productos-venta');
+        tbody.innerHTML = '';
+
+        if (productosVenta.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="no-productos">No hay productos para mostrar</td></tr>';
+            return;
+        }
+
+        // Función para crear filas (ahora con columna de precio separada)
+        const crearFilaProducto = (prod) => {
+            const precio = typeof prod.precio === 'string' ? parseFloat(prod.precio) : prod.precio;
+            const stock = parseInt(prod.cantidad);
+            
+            const tr = document.createElement('tr');
+            tr.dataset.nombre = prod.nombre.toLowerCase();
+            tr.dataset.categoria = prod.categoria.toLowerCase();
+            tr.dataset.id = prod.id;
+            
+            tr.innerHTML = `
+                <td>${prod.id}</td>
+                <td class="producto-nombre">${prod.nombre}</td> <!-- Nombre solo -->
+                <td class="precio">$${precio.toFixed(2)}</td> <!-- Columna independiente -->
+                <td class="stock">${stock}</td>
+                <td class="categoria">${prod.categoria}</td>
+                <td class="acciones">
+                    <input type="number" 
+                           id="venta-${prod.id}" 
+                           class="input-venta"
+                           min="0" 
+                           max="${stock}" 
+                           value="0"
+                           data-precio="${precio}" 
+                           data-id="${prod.id}"
+                           data-stock="${stock}"
+                           oninput="validarVenta(this)">
+                    <span class="error-venta" id="error-${prod.id}"></span>
+                </td>
+            `;
+            return tr;
+        };
+
+        // Agregar productos
+        productosVenta.forEach(prod => {
+            tbody.appendChild(crearFilaProducto(prod));
+        });
+
+        // Eventos y resumen (sin cambios)
+        document.querySelectorAll('.input-venta').forEach(input => {
+            input.addEventListener('change', actualizarResumenVenta);
+            input.addEventListener('input', function() {
+                const errorSpan = document.getElementById(`error-${this.dataset.id}`);
+                errorSpan.textContent = '';
+            });
+        });
+
+        actualizarResumenVenta();
+
+    } catch (error) {
+        console.error('Error:', error);
+        const tbody = document.getElementById('productos-venta');
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" class="error-carga"> <!-- Ajustado a 6 columnas -->
+                    Error al cargar productos: ${error.message}
+                    <button onclick="cargarProductosParaVenta()" class="boton-reintentar">Reintentar</button>
+                </td>
+            </tr>
+        `;
+    }
+}
+
+// Función auxiliar para validar ventas
+function validarVenta(input) {
+    const cantidad = parseInt(input.value) || 0;
+    const maxStock = parseInt(input.dataset.stock);
+    const errorSpan = document.getElementById(`error-${input.dataset.id}`);
+
+    if (cantidad < 0) {
+        input.value = 0;
+    } else if (cantidad > maxStock) {
+        input.value = maxStock;
+        errorSpan.textContent = `Stock máximo: ${maxStock}`;
+        errorSpan.style.display = 'inline-block';
+        setTimeout(() => errorSpan.style.display = 'none', 3000);
+    }
+}
+
+// Función para actualizar el resumen de ventas
+function actualizarResumenVenta() {
+    let totalProductos = 0;
+    let gananciasTotales = 0;
+
+    productosVenta.forEach(prod => {
+        const input = document.getElementById(`venta-${prod.id}`);
+        if (input) {
+            const cantidad = parseInt(input.value) || 0;
+            totalProductos += cantidad;
+            gananciasTotales += cantidad * prod.precio;
+        }
+    });
+
+    document.getElementById('total-productos').textContent = totalProductos;
+    document.getElementById('ganancias-totales').textContent = gananciasTotales.toFixed(2);
+}
+
+// Función para aplicar las ventas
+async function aplicarVentas() {
+    const ventas = [];
+    let hayVentas = false;
+    let hayError = false;
+
+    productosVenta.forEach(prod => {
+        const input = document.getElementById(`venta-${prod.id}`);
+        if (input) {
+            const cantidad = parseInt(input.value) || 0;
+            const maxStock = parseInt(prod.cantidad);
+            
+            if (cantidad > maxStock) {
+                hayError = true;
+                const errorSpan = document.getElementById(`error-${prod.id}`);
+                errorSpan.textContent = `¡No puedes vender más de ${maxStock}!`;
+                errorSpan.style.display = 'inline';
+            } else if (cantidad > 0) {
+                ventas.push({
+                    id: prod.id,
+                    cantidadVendida: cantidad,
+                    precio: typeof prod.precio === 'string' ? parseFloat(prod.precio) : prod.precio
+                });
+                hayVentas = true;
+            }
+        }
+    });
+
+    if (hayError) {
+        alert('Hay cantidades inválidas. Corrige antes de continuar.');
         return;
     }
 
-    tokenInput.value = token;
-    form.addEventListener('submit', handleSubmit);
+    if (!hayVentas) {
+        alert('No hay productos vendidos para aplicar');
+        return;
+    }
+
+    if (!confirm('¿Estás seguro de aplicar estas ventas? Esta acción no se puede deshacer.')) {
+        return;
+    }
+
+    try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            alert('Por favor, inicia sesión para realizar esta acción.');
+            window.location.href = 'login.html';
+            return;
+        }
+
+        // Actualizar cada producto
+        for (const venta of ventas) {
+            const url = `http://localhost:3000/api/productos/${venta.id}?sucursal=${config.sucursalId}`;
+            const producto = productosVenta.find(p => p.id === venta.id);
+            
+            const response = await fetch(url, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    nombre: producto.nombre,
+                    precio: producto.precio,
+                    cantidad: producto.cantidad - venta.cantidadVendida,
+                    categoria: producto.categoria,
+                    sucursal_id: parseInt(config.sucursalId)
+                })
+            });
+
+            if (!response.ok) throw new Error('Error al actualizar producto');
+        }
+
+        alert('Ventas aplicadas correctamente');
+        obtenerProductos(); // Actualizar la tabla principal
+        cerrarModal();
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error al aplicar ventas');
+    }
+}
+
+function filtrarProductos() {
+    const busqueda = document.getElementById('buscar-producto').value.toLowerCase();
+    const filas = document.querySelectorAll('#productos-venta tr');
+    
+    let resultados = 0;
+    
+    filas.forEach(fila => {
+        // Omitir la fila de "no hay productos"
+        if (fila.cells.length < 2) {
+            fila.style.display = 'none';
+            return;
+        }
+        
+        const nombre = fila.cells[1].textContent.toLowerCase();
+        const categoria = fila.cells[3].textContent.toLowerCase();
+        
+        if (nombre.includes(busqueda) || categoria.includes(busqueda)) {
+            fila.style.display = '';
+            resultados++;
+        } else {
+            fila.style.display = 'none';
+        }
+    });
+    
+    // Mostrar mensaje si no hay resultados
+    const mensajeNoResultados = document.getElementById('no-resultados');
+    if (resultados === 0 && busqueda !== '') {
+        if (!mensajeNoResultados) {
+            const tbody = document.getElementById('productos-venta');
+            const tr = document.createElement('tr');
+            tr.id = 'no-resultados';
+            tr.innerHTML = `<td colspan="5">No se encontraron productos con "${busqueda}"</td>`;
+            tbody.appendChild(tr);
+        }
+    } else if (mensajeNoResultados) {
+        mensajeNoResultados.remove();
+    }
+}
+
+// Event listeners para el filtro
+document.addEventListener('DOMContentLoaded', () => {
+    const buscarInput = document.getElementById('buscar-producto');
+    const limpiarBtn = document.getElementById('limpiar-busqueda');
+    
+    if (buscarInput) {
+        buscarInput.addEventListener('input', filtrarProductos);
+        
+        // Buscar al presionar Enter
+        buscarInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') filtrarProductos();
+        });
+    }
+    
+    if (limpiarBtn) {
+        limpiarBtn.addEventListener('click', () => {
+            buscarInput.value = '';
+            filtrarProductos();
+            buscarInput.focus();
+        });
+    }
 });
 
+// Event listeners
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('abrir-cierre-caja')?.addEventListener('click', abrirCierreCaja);
+    document.querySelector('.cerrar-modal')?.addEventListener('click', cerrarModal);
+    document.getElementById('aplicar-ventas')?.addEventListener('click', aplicarVentas);
+    document.getElementById('cancelar-ventas')?.addEventListener('click', cerrarModal);
+});

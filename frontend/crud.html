@@ -134,6 +134,7 @@
         <div class="botones">
             <a href="ubicacion.html" class="boton">Volver a Sucursales</a>
             <a href="index.html" class="boton">Volver al Inicio</a>
+            <button id="abrir-cierre-caja" class="boton">Cierre de Caja</button>
         </div>
         
         <!-- Formulario para agregar producto -->
@@ -170,7 +171,42 @@
             </table>
         </div>
     </main>
-
+    <div id="cierre-caja-modal" class="modal">
+        <div class="modal-contenido">
+            <span class="cerrar-modal">&times;</span>
+            <h2>Cierre de Caja - Sucursal <span id="sucursal-modal"></span></h2>
+            <div class="filtro-ventas">
+                <input type="text" id="buscar-producto" placeholder="Buscar por nombre o categoría..." class="input-busqueda">
+                <button id="limpiar-busqueda" class="boton-pequeno">Limpiar</button>
+            </div>
+            <div class="tabla-contenedor">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nombre</th>
+                            <th>Precio</th>
+                            <th>Stock</th>
+                            <th>Categoría</th>
+                            <th>Ventas</th>
+                        </tr>
+                    </thead>
+                    <tbody id="productos-venta"></tbody>
+                </table>
+            </div>
+            
+            <div class="resumen-venta">
+                <h3>Resumen de Ventas</h3>
+                <p>Total de productos vendidos: <span id="total-productos">0</span></p>
+                <p>Ganancias totales: $<span id="ganancias-totales">0.00</span></p>
+            </div>
+            
+            <div class="botones-modal">
+                <button id="cancelar-ventas" class="boton boton-secundario">Cancelar</button>
+                <button id="aplicar-ventas" class="boton">Aplicar Ventas</button>
+            </div>
+        </div>
+    </div>
     <footer>
         <p>&copy; 2024 Atales. Todos los derechos reservados.</p>
     </footer>
