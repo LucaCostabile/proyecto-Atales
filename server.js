@@ -195,7 +195,7 @@ app.post('/api/cierres-caja', async (req, res) => {
 app.get('/api/cierres-caja/:sucursalId', async (req, res) => {
     try {
         const { sucursalId } = req.params;
-        const { fecha } = req.query;
+        const { fechaInicio, fechaFin } = req.query;
         
         let query = `
             SELECT 
@@ -211,9 +211,13 @@ app.get('/api/cierres-caja/:sucursalId', async (req, res) => {
         `;
         const params = [sucursalId];
 
-        if (fecha) {
-            query += ' AND DATE(c.fecha_registro) = ?';
-            params.push(fecha);
+        if (fechaInicio) {
+            query += ' AND DATE(c.fecha_registro) >= ?';
+            params.push(fechaInicio);
+        }
+        if (fechaFin) {
+            query += ' AND DATE(c.fecha_registro) <= ?';
+            params.push(fechaFin);
         }
 
         query += ' ORDER BY c.fecha_registro DESC';

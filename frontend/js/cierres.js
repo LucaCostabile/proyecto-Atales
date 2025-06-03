@@ -19,9 +19,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     async function cargarCierres(fechaInicio = '', fechaFin = '') {
         try {
             let url = `/api/cierres-caja/${sucursalId}`;
-            if (fechaInicio && fechaFin) {
-                url += `?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`;
-            }
+            const params = [];
+            if (fechaInicio) params.push(`fechaInicio=${fechaInicio}`);
+            if (fechaFin) params.push(`fechaFin=${fechaFin}`);
+            if (params.length) url += `?${params.join('&')}`;
 
             const response = await fetch(url);
             const cierres = await response.json();
