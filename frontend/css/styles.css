@@ -47,7 +47,7 @@ main {
     padding: 20px;
     text-align: center;
     flex: 1;
-    max-width: 1200px;   /* Aumenta el ancho máximo, o usa 100vw si quieres que ocupe todo */
+    max-width: 90vw;   /* Aumenta el ancho máximo, o usa 100vw si quieres que ocupe todo */
     width: 100%;
     margin: 40px auto 60px auto;
     background: white;

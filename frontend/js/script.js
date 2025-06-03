@@ -8,7 +8,7 @@ const config = window.ATALES_CONFIG || {
     }
 };
 
-const apiUrl = `http://localhost:3000/api/productos?sucursal=${config.sucursalId}`;
+const apiUrl = `/api/productos?sucursal=${config.sucursalId}`;
 console.log('API configurada:', apiUrl);
 
 // Mostrar información de la sucursal actual
@@ -31,7 +31,6 @@ document.addEventListener('DOMContentLoaded', () => {
             window.location.href = 'login.html'; // Redirigir al login
         });
     }
-    
 });
 
 const obtenerProductos = async () => {
@@ -147,7 +146,7 @@ const eliminarProducto = async (id) => {
             return;
         }
 
-        const urlEliminar = `http://localhost:3000/api/productos/${id}?sucursal=${config.sucursalId}`;
+        const urlEliminar = `/api/productos/${id}?sucursal=${config.sucursalId}`;
         const response = await fetch(urlEliminar, {
             method: 'DELETE',
             headers: {
@@ -183,7 +182,7 @@ const guardarCambios = async (id) => {
             return;
         }
 
-        const urlActualizar = `http://localhost:3000/api/productos/${id}?sucursal=${config.sucursalId}`;
+        const urlActualizar = `/api/productos/${id}?sucursal=${config.sucursalId}`;
         const response = await fetch(urlActualizar, {
             method: 'PUT',
             headers: {
@@ -268,7 +267,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
           console.log('Intentando iniciar sesión con:', email, password); // Mensaje de depuración
 
-          const response = await fetch('http://localhost:3000/auth/login', {
+          const response = await fetch('/auth/login', {
               method: 'POST',
               headers: {
                   'Content-Type': 'application/json'
@@ -308,7 +307,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         console.log('Intentando registrar usuario:', username, email); // Mensaje de depuración
 
-        const response = await fetch('http://localhost:3000/auth/register', {
+        const response = await fetch('/auth/register', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -339,7 +338,7 @@ if (resetPasswordForm) {
 
         console.log('Solicitando restablecimiento de contraseña para:', email); // Mensaje de depuración
 
-        const response = await fetch('http://localhost:3000/reset/reset-password', {  
+        const response = await fetch('/reset/reset-password', {  
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -399,7 +398,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         try {
-            const response = await fetch('http://localhost:3000/reset/confirm-reset-password', {
+            const response = await fetch('/reset/confirm-reset-password', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
