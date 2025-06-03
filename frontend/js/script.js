@@ -31,6 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
             window.location.href = 'login.html'; // Redirigir al login
         });
     }
+    
 });
 
 const obtenerProductos = async () => {
@@ -574,22 +575,27 @@ async function aplicarVentas() {
     const ventas = [];
     let totalProductos = 0;
     let gananciasTotales = 0;
+    const detalles = [];
 
-    // Calcular totales
+    // Calcular totales y preparar detalles
     productosVenta.forEach(prod => {
         const input = document.getElementById(`venta-${prod.id}`);
-        if (input) {
-            const cantidad = parseInt(input.value) || 0;
-            if (cantidad > 0) {
-                const precio = parseFloat(input.dataset.precio);
-                ventas.push({
-                    id: prod.id,
-                    cantidadVendida: cantidad,
-                    precio: precio
-                });
-                totalProductos += cantidad;
-                gananciasTotales += cantidad * precio;
-            }
+        if (input && input.value > 0) {
+            const cantidad = parseInt(input.value);
+            const precio = parseFloat(input.dataset.precio);
+            const total = cantidad * precio;
+            
+            ventas.push({ id: prod.id, cantidad });
+            detalles.push({
+                producto_id: prod.id,
+                nombre: prod.nombre,
+                cantidad,
+                precio_unitario: precio,
+                total
+            });
+
+            totalProductos += cantidad;
+            gananciasTotales += total;
         }
     });
 
@@ -607,29 +613,11 @@ async function aplicarVentas() {
         
         // 1. Actualizar productos
         for (const venta of ventas) {
-            const url = `http://localhost:3000/api/productos/${venta.id}?sucursal=${config.sucursalId}`;
-            const producto = productosVenta.find(p => p.id === venta.id);
-            
-            const response = await fetch(url, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    nombre: producto.nombre,
-                    precio: producto.precio,
-                    cantidad: producto.cantidad - venta.cantidadVendida,
-                    categoria: producto.categoria,
-                    sucursal_id: parseInt(config.sucursalId)
-                })
-            });
-
-            if (!response.ok) throw new Error('Error al actualizar producto');
+            await actualizarProducto(venta.id, venta.cantidad, token);
         }
 
-        // 2. Registrar cierre
-        const cierreResponse = await fetch('http://localhost:3000/api/cierres-caja', {
+        // 2. Registrar cierre con detalles
+        const cierreResponse = await fetch('/api/cierres-caja', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -638,25 +626,47 @@ async function aplicarVentas() {
             body: JSON.stringify({
                 sucursal_id: parseInt(config.sucursalId),
                 total_productos: totalProductos,
-                ganancias_totales: gananciasTotales
+                ganancias_totales: gananciasTotales,
+                detalles: detalles
             })
         });
 
-        if (!cierreResponse.ok) throw new Error('Error al registrar cierre');
-
         const resultado = await cierreResponse.json();
-        console.log('Cierre registrado:', resultado);
-
-        alert(`Cierre de caja registrado exitosamente\nID: ${resultado.id}\nFecha: ${new Date(resultado.fecha_registro).toLocaleString()}`);
-        
-        // Actualizar vista sin cerrar modal
+        if (resultado.id) {
+            alert(`✅ Cierre registrado correctamente\n\n• ID: ${resultado.id}\n• Sucursal: ${config.sucursales[config.sucursalId]?.nombre}\n• Fecha: ${new Date(resultado.fecha_registro).toLocaleString()}`);
+        } else {
+            alert('✅ Cierre registrado (consulta el historial para ver detalles)');
+        }
+        // Actualizar vista
         cargarProductosParaVenta();
         actualizarResumenVenta();
 
     } catch (error) {
         console.error('Error:', error);
-        alert(`Error al aplicar ventas: ${error.message}`);
+        alert(`❌ Error: ${error.message}`);
     }
+}
+
+async function actualizarProducto(id, cantidadVendida, token) {
+    const url = `http://localhost:3000/api/productos/${id}?sucursal=${config.sucursalId}`;
+    const producto = productosVenta.find(p => p.id === id);
+    
+    const response = await fetch(url, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+            nombre: producto.nombre,
+            precio: producto.precio,
+            cantidad: producto.cantidad - cantidadVendida,
+            categoria: producto.categoria,
+            sucursal_id: parseInt(config.sucursalId)
+        })
+    });
+
+    if (!response.ok) throw new Error(`Producto ID ${id}`);
 }
 
 function filtrarProductos() {
@@ -727,4 +737,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelector('.cerrar-modal')?.addEventListener('click', cerrarModal);
     document.getElementById('aplicar-ventas')?.addEventListener('click', aplicarVentas);
     document.getElementById('cancelar-ventas')?.addEventListener('click', cerrarModal);
+    document.getElementById('btn-historial')?.addEventListener('click', () => {
+        window.location.href = `cierres.html?sucursal=${window.ATALES_CONFIG.sucursalId}`;
+    });
 });

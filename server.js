@@ -164,52 +164,67 @@ app.get('/api/categorias', async (req, res) => {
 
 // Registrar nuevo cierre de caja
 app.post('/api/cierres-caja', async (req, res) => {
-  try {
-    const { sucursal_id, total_productos, ganancias_totales } = req.body;
+    try {
+        const { sucursal_id, total_productos, ganancias_totales } = req.body;
 
-    const [result] = await db.query(
-      'INSERT INTO cierres_caja (sucursal_id, total_productos, ganancias_totales) VALUES (?, ?, ?)',
-      [sucursal_id, total_productos, ganancias_totales]
-    );
+        const [result] = await db.query(
+            'INSERT INTO cierres_caja SET ?',
+            {
+                sucursal_id,
+                total_productos,
+                ganancias_totales,
+                fecha_registro: new Date()
+            }
+        );
 
-    res.status(201).json({
-      id: result.insertId,
-      sucursal_id,
-      total_productos,
-      ganancias_totales,
-      fecha_registro: new Date()
-    });
+        // Devuelve el ID correctamente
+        const [nuevoCierre] = await db.query(
+            'SELECT * FROM cierres_caja WHERE id = ?',
+            [result.insertId]
+        );
 
-  } catch (err) {
-    console.error('Error en POST /api/cierres-caja:', err);
-    res.status(500).json({
-      message: 'Error al registrar cierre de caja',
-      error: err.message
-    });
-  }
+        res.status(201).json(nuevoCierre[0]);
+
+    } catch (err) {
+        console.error('Error:', err);
+        res.status(500).json({ error: 'Error al registrar cierre' });
+    }
 });
 
 // Obtener historial de cierres por sucursal
 app.get('/api/cierres-caja/:sucursalId', async (req, res) => {
-  try {
-    const { sucursalId } = req.params;
-    
-    const [rows] = await db.query(`
-      SELECT c.*, s.nombre as sucursal_nombre 
-      FROM cierres_caja c
-      JOIN sucursales s ON c.sucursal_id = s.id
-      WHERE c.sucursal_id = ?
-      ORDER BY c.fecha_registro DESC
-    `, [sucursalId]);
+    try {
+        const { sucursalId } = req.params;
+        const { fecha } = req.query;
+        
+        let query = `
+            SELECT 
+                c.id,
+                c.sucursal_id,
+                CAST(c.total_productos AS SIGNED) as total_productos,
+                CAST(c.ganancias_totales AS DECIMAL(12,2)) as ganancias_totales,
+                c.fecha_registro,
+                s.nombre as sucursal
+            FROM cierres_caja c
+            JOIN sucursales s ON c.sucursal_id = s.id
+            WHERE c.sucursal_id = ?
+        `;
+        const params = [sucursalId];
 
-    res.json(rows);
-  } catch (err) {
-    console.error('Error en GET /api/cierres-caja:', err);
-    res.status(500).json({
-      message: 'Error al obtener cierres de caja',
-      error: err.message
-    });
-  }
+        if (fecha) {
+            query += ' AND DATE(c.fecha_registro) = ?';
+            params.push(fecha);
+        }
+
+        query += ' ORDER BY c.fecha_registro DESC';
+
+        const [rows] = await db.query(query, params);
+        res.json(rows);
+
+    } catch (err) {
+        console.error('Error en GET /api/cierres-caja:', err);
+        res.status(500).json({ error: 'Error al obtener cierres' });
+    }
 });
 
 // Iniciar servidor
