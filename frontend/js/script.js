@@ -647,7 +647,7 @@ async function aplicarVentas() {
 }
 
 async function actualizarProducto(id, cantidadVendida, token) {
-    const url = `http://localhost:3000/api/productos/${id}?sucursal=${config.sucursalId}`;
+    const url = `/api/productos/${id}?sucursal=${config.sucursalId}`;
     const producto = productosVenta.find(p => p.id === id);
     
     const response = await fetch(url, {
