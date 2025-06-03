@@ -67,9 +67,22 @@ async function initializeDB() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     `);
 
+    // 5. Caja de ventas
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS cierres_caja (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        sucursal_id INT NOT NULL,
+        total_productos INT NOT NULL,
+        ganancias_totales DECIMAL(12, 2) NOT NULL,
+        fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (sucursal_id) REFERENCES sucursales(id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    `);
+
     console.log('✅ Base de datos inicializada correctamente');
     console.log('   - 3 sucursales creadas por defecto');
     console.log('   - Relación productos-sucursales establecida');
+    console.log('   - Tabla de cierres de caja creada');
 
   } catch (err) {
     console.error('❌ Error al inicializar la base de datos:', err);

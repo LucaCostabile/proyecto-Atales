@@ -162,6 +162,56 @@ app.get('/api/categorias', async (req, res) => {
   }
 });
 
+// Registrar nuevo cierre de caja
+app.post('/api/cierres-caja', async (req, res) => {
+  try {
+    const { sucursal_id, total_productos, ganancias_totales } = req.body;
+
+    const [result] = await db.query(
+      'INSERT INTO cierres_caja (sucursal_id, total_productos, ganancias_totales) VALUES (?, ?, ?)',
+      [sucursal_id, total_productos, ganancias_totales]
+    );
+
+    res.status(201).json({
+      id: result.insertId,
+      sucursal_id,
+      total_productos,
+      ganancias_totales,
+      fecha_registro: new Date()
+    });
+
+  } catch (err) {
+    console.error('Error en POST /api/cierres-caja:', err);
+    res.status(500).json({
+      message: 'Error al registrar cierre de caja',
+      error: err.message
+    });
+  }
+});
+
+// Obtener historial de cierres por sucursal
+app.get('/api/cierres-caja/:sucursalId', async (req, res) => {
+  try {
+    const { sucursalId } = req.params;
+    
+    const [rows] = await db.query(`
+      SELECT c.*, s.nombre as sucursal_nombre 
+      FROM cierres_caja c
+      JOIN sucursales s ON c.sucursal_id = s.id
+      WHERE c.sucursal_id = ?
+      ORDER BY c.fecha_registro DESC
+    `, [sucursalId]);
+
+    res.json(rows);
+  } catch (err) {
+    console.error('Error en GET /api/cierres-caja:', err);
+    res.status(500).json({
+      message: 'Error al obtener cierres de caja',
+      error: err.message
+    });
+  }
+});
+
 // Iniciar servidor
 app.listen(PORT, () => {
   console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);

@@ -572,54 +572,40 @@ function actualizarResumenVenta() {
 // Función para aplicar las ventas
 async function aplicarVentas() {
     const ventas = [];
-    let hayVentas = false;
-    let hayError = false;
+    let totalProductos = 0;
+    let gananciasTotales = 0;
 
+    // Calcular totales
     productosVenta.forEach(prod => {
         const input = document.getElementById(`venta-${prod.id}`);
         if (input) {
             const cantidad = parseInt(input.value) || 0;
-            const maxStock = parseInt(prod.cantidad);
-            
-            if (cantidad > maxStock) {
-                hayError = true;
-                const errorSpan = document.getElementById(`error-${prod.id}`);
-                errorSpan.textContent = `¡No puedes vender más de ${maxStock}!`;
-                errorSpan.style.display = 'inline';
-            } else if (cantidad > 0) {
+            if (cantidad > 0) {
+                const precio = parseFloat(input.dataset.precio);
                 ventas.push({
                     id: prod.id,
                     cantidadVendida: cantidad,
-                    precio: typeof prod.precio === 'string' ? parseFloat(prod.precio) : prod.precio
+                    precio: precio
                 });
-                hayVentas = true;
+                totalProductos += cantidad;
+                gananciasTotales += cantidad * precio;
             }
         }
     });
 
-    if (hayError) {
-        alert('Hay cantidades inválidas. Corrige antes de continuar.');
-        return;
-    }
-
-    if (!hayVentas) {
+    if (ventas.length === 0) {
         alert('No hay productos vendidos para aplicar');
         return;
     }
 
-    if (!confirm('¿Estás seguro de aplicar estas ventas? Esta acción no se puede deshacer.')) {
+    if (!confirm(`¿Registrar cierre de caja?\n\nProductos: ${totalProductos}\nGanancias: $${gananciasTotales.toFixed(2)}`)) {
         return;
     }
 
     try {
         const token = localStorage.getItem('token');
-        if (!token) {
-            alert('Por favor, inicia sesión para realizar esta acción.');
-            window.location.href = 'login.html';
-            return;
-        }
-
-        // Actualizar cada producto
+        
+        // 1. Actualizar productos
         for (const venta of ventas) {
             const url = `http://localhost:3000/api/productos/${venta.id}?sucursal=${config.sucursalId}`;
             const producto = productosVenta.find(p => p.id === venta.id);
@@ -642,12 +628,34 @@ async function aplicarVentas() {
             if (!response.ok) throw new Error('Error al actualizar producto');
         }
 
-        alert('Ventas aplicadas correctamente');
-        obtenerProductos(); // Actualizar la tabla principal
-        cerrarModal();
+        // 2. Registrar cierre
+        const cierreResponse = await fetch('http://localhost:3000/api/cierres-caja', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                sucursal_id: parseInt(config.sucursalId),
+                total_productos: totalProductos,
+                ganancias_totales: gananciasTotales
+            })
+        });
+
+        if (!cierreResponse.ok) throw new Error('Error al registrar cierre');
+
+        const resultado = await cierreResponse.json();
+        console.log('Cierre registrado:', resultado);
+
+        alert(`Cierre de caja registrado exitosamente\nID: ${resultado.id}\nFecha: ${new Date(resultado.fecha_registro).toLocaleString()}`);
+        
+        // Actualizar vista sin cerrar modal
+        cargarProductosParaVenta();
+        actualizarResumenVenta();
+
     } catch (error) {
         console.error('Error:', error);
-        alert('Error al aplicar ventas');
+        alert(`Error al aplicar ventas: ${error.message}`);
     }
 }
 
