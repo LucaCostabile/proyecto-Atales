@@ -44,7 +44,7 @@ router.post('/reset-password', async (req, res) => {
     );
 
     // Enviar correo con el enlace de restablecimiento
-    const resetLink = `/reset/reset-password/${token}`;
+    const resetLink = `https://proyecto-atales.onrender.com/reset/reset-password/${token}`;
     
     // Configuración del email para Nodemailer
     const mailOptions = {
