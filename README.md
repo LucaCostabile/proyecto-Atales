@@ -26,19 +26,6 @@ Este proyecto es una aplicación web diseñada para gestionar el stock, ventas y
   - Base de datos en [Railway](https://railway.app/)
 - **Control de versiones:** Git + GitHub
 
-## 📂 Estructura del Proyecto
-
-```
-/controllers
-/models
-/public
-/routes
-/views
-.env
-app.js
-README.md
-```
-
 ## 🛠️ Instalación y Ejecución Local
 
 ### 1. Clonar el Repositorio
