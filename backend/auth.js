@@ -1,7 +1,7 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
-const db = require('../database');
+const db = require('./database');
 const router = express.Router();
 const SECRET_KEY = process.env.SECRET_KEY || 'secreto_super_seguro';
 
