@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const pool = require('./base/database');
+const database = require('../base/database');
 
 // CRUD Productos
 router.post('/productos', async (req, res) => {

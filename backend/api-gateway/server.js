@@ -38,19 +38,33 @@ app.use(cors({
 // 3. Rate Limiting optimizado para Kubernetes
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 1000, // Límite por pod (ajustar según réplicas)
+  max: 1000, // Límite por pod
   message: { error: 'Demasiadas solicitudes. Por favor intenta nuevamente más tarde.' },
-  validate: { trustProxy: true } // Importante para Kubernetes
+  validate: { trustProxy: true },
+  // Excluir health checks y probes de Kubernetes
+  skip: (req) => {
+    const userAgent = req.get('User-Agent') || '';
+    const isKubeProbe = userAgent.includes('kube-probe');
+    const isHealthCheck = req.path.startsWith('/api/health');
+    return isKubeProbe || isHealthCheck;
+  }
 });
 
 const authLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minuto
   max: 100,
   message: { error: 'Demasiados intentos. Por favor espera 1 minuto.' },
-  validate: { trustProxy: true }
+  validate: { trustProxy: true },
+  // También excluir de auth limiter si es necesario
+  skip: (req) => {
+    const userAgent = req.get('User-Agent') || '';
+    return userAgent.includes('kube-probe');
+  }
 });
 
-app.use(generalLimiter);
+// Aplicar rate limiting después de health checks
+app.use('/api/health', (req, res, next) => next()); // Sin rate limiting
+app.use(generalLimiter); // Aplicar a todo lo demás
 
 // 4. Configuración común de proxies
 const proxyConfig = {
@@ -90,15 +104,31 @@ app.use('/api', createProxyMiddleware({
 // 6. Health Check mejorado para Kubernetes
 app.get('/api/health', async (req, res) => {
   try {
-    const healthStatus = {
+    // Health check básico y rápido para las probes
+    const basicHealth = {
       status: 'healthy',
       service: 'api-gateway',
       timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-      dependencies: await checkMicroservicesHealth()
+      uptime: process.uptime()
     };
 
-    res.status(200).json(healthStatus);
+    // Solo verificar dependencias si se solicita explícitamente
+    if (req.query.detailed === 'true') {
+      try {
+        // Timeout más corto para dependencias
+        const healthPromise = checkMicroservicesHealth();
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Health check timeout')), 3000)
+        );
+        
+        basicHealth.dependencies = await Promise.race([healthPromise, timeoutPromise]);
+      } catch (depError) {
+        console.warn('Error checking dependencies:', depError.message);
+        basicHealth.dependencies = { error: 'Dependencies check failed' };
+      }
+    }
+
+    res.status(200).json(basicHealth);
   } catch (error) {
     console.error('Error en health check:', error);
     res.status(500).json({ 
