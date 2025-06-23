@@ -1,11 +1,11 @@
-name: CI - Frontend
+name: CI - Auth Service
 
 on:
   push:
     branches: [ dev, test, main ]
     paths:
-      - 'frontend/**'
-      - '.github/workflows/frontend-ci.yml'
+      - 'backend/auth-service/**'
+      - '.github/workflows/backend-auth-ci.yml'
 
 jobs:
   build-and-push:
@@ -24,10 +24,10 @@ jobs:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-    - name: Build and push frontend image
+    - name: Build and push auth-service image
       uses: docker/build-push-action@v5
       with:
-        context: ./frontend
+        context: ./backend/auth-service
         push: true
         tags: |
-          luca011/frontend-atales:${{ github.ref_name == 'main' && 'prod' || github.ref_name }}-latest
+          luca011/auth-service-atales:${{ github.ref_name == 'main' && 'prod' || github.ref_name }}-latest
