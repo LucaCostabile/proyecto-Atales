@@ -1,11 +1,11 @@
-name: CI - Frontend
+name: CI - Negocio Service
 
 on:
   push:
-    branches: [ main ]
+    branches: [ dev, test, main ]
     paths:
-      - 'frontend/**'
-      - '.github/workflows/frontend-ci.yml'
+      - 'backend/negocio-service/**'
+      - '.github/workflows/backend-negocio-ci.yml'
 
 jobs:
   build-and-push:
@@ -24,9 +24,10 @@ jobs:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-    - name: Build and push frontend image
+    - name: Build and push negocio-service image
       uses: docker/build-push-action@v5
       with:
-        context: ./frontend
+        context: ./backend/negocio-service
         push: true
-        tags: juan95kruz/frontend-atales:latest
+        tags: |
+          luca011/negocio-service-atales:${{ github.ref_name == 'main' && 'prod' || github.ref_name }}-latest
