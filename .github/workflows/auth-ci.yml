@@ -5,7 +5,7 @@ on:
     branches: [ dev, test, main ]
     paths:
       - 'backend/auth-service/**'
-      - '.github/workflows/backend-auth-ci.yml'
+      - '.github/workflows/auth-ci.yml'
 
 jobs:
   build-and-push:

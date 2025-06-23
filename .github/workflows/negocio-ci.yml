@@ -5,7 +5,7 @@ on:
     branches: [ dev, test, main ]
     paths:
       - 'backend/negocio-service/**'
-      - '.github/workflows/backend-negocio-ci.yml'
+      - '.github/workflows/negocio-ci.yml'
 
 jobs:
   build-and-push:
