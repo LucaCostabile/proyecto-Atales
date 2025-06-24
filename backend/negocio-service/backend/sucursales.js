@@ -1,11 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const database = require('../base/database');
+const pool = require('../base/database');
 
 // Obtener todas las sucursales
 router.get('/sucursales', async (req, res) => {
     try {
-        const [rows] = await db.query('SELECT * FROM sucursales');
+        const [rows] = await pool.query('SELECT * FROM sucursales');
         res.json(rows);
     } catch (err) {
         console.error('Error en GET /api/sucursales:', err);
@@ -20,7 +20,7 @@ router.get('/sucursales', async (req, res) => {
 router.get('/sucursales/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const [rows] = await db.query('SELECT * FROM sucursales WHERE id = ?', [id]);
+        const [rows] = await pool.query('SELECT * FROM sucursales WHERE id = ?', [id]);
         
         if (rows.length === 0) {
             return res.status(404).json({ message: 'Sucursal no encontrada' });
@@ -45,7 +45,7 @@ router.post('/sucursales', async (req, res) => {
             return res.status(400).json({ message: 'Nombre es requerido' });
         }
 
-        const [result] = await db.query(
+        const [result] = await pool.query(
             'INSERT INTO sucursales (nombre, direccion, telefono) VALUES (?, ?, ?)',
             [nombre, direccion || null, telefono || null]
         );
@@ -76,7 +76,7 @@ router.put('/sucursales/:id', async (req, res) => {
             return res.status(400).json({ message: 'Nombre es requerido' });
         }
 
-        const [result] = await db.query(
+        const [result] = await pool.query(
             'UPDATE sucursales SET nombre = ?, direccion = ?, telefono = ? WHERE id = ?',
             [nombre, direccion || null, telefono || null, id]
         );
@@ -107,7 +107,7 @@ router.delete('/sucursales/:id', async (req, res) => {
         const { id } = req.params;
         
         // Verificar si la sucursal tiene productos asociados
-        const [productos] = await db.query('SELECT COUNT(*) as count FROM productos WHERE sucursal_id = ?', [id]);
+        const [productos] = await pool.query('SELECT COUNT(*) as count FROM productos WHERE sucursal_id = ?', [id]);
         
         if (productos[0].count > 0) {
             return res.status(400).json({ 
@@ -115,7 +115,7 @@ router.delete('/sucursales/:id', async (req, res) => {
             });
         }
 
-        const [result] = await db.query('DELETE FROM sucursales WHERE id = ?', [id]);
+        const [result] = await pool.query('DELETE FROM sucursales WHERE id = ?', [id]);
 
         if (result.affectedRows === 0) {
             return res.status(404).json({ message: 'Sucursal no encontrada' });

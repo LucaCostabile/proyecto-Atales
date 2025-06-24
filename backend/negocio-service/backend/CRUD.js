@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const database = require('../base/database');
+const pool = require('../base/database');
 
 // CRUD Productos
 router.post('/productos', async (req, res) => {
@@ -11,7 +11,7 @@ router.post('/productos', async (req, res) => {
       throw new Error('Nombre y precio son requeridos');
     }
 
-    const [result] = await db.query(
+    const [result] = await pool.query(
       'INSERT INTO productos (nombre, precio, cantidad, categoria, sucursal_id) VALUES (?, ?, ?, ?, ?)',
       [nombre, parseFloat(precio), parseInt(cantidad), categoria, sucursal_id]
     );
@@ -38,7 +38,7 @@ router.post('/productos', async (req, res) => {
 router.get('/productos', async (req, res) => {
   try {
     const sucursal = req.query.sucursal || 1;
-    const [rows] = await db.query(
+    const [rows] = await pool.query(
       'SELECT id, nombre, precio, cantidad, categoria FROM productos WHERE sucursal_id = ?',
       [sucursal]
     );
@@ -57,7 +57,7 @@ router.put('/productos/:id', async (req, res) => {
     const { id } = req.params;
     const { nombre, precio, cantidad, categoria } = req.body;
 
-    const [result] = await db.query(
+    const [result] = await pool.query(
       'UPDATE productos SET nombre = ?, precio = ?, cantidad = ?, categoria = ? WHERE id = ?',
       [nombre, parseFloat(precio), parseInt(cantidad), categoria, id]
     );
@@ -85,7 +85,7 @@ router.put('/productos/:id', async (req, res) => {
 router.delete('/productos/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const [result] = await db.query(
+    const [result] = await pool.query(
       'DELETE FROM productos WHERE id = ?',
       [id]
     );
@@ -107,7 +107,7 @@ router.delete('/productos/:id', async (req, res) => {
 // Ruta para obtener categorías disponibles
 router.get('/categorias', async (req, res) => {
   try {
-    const [rows] = await db.query(
+    const [rows] = await pool.query(
       'SELECT DISTINCT categoria FROM productos WHERE categoria IS NOT NULL'
     );
     res.json(rows.map(item => item.categoria));

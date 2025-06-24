@@ -1,13 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const database = require('../base/database');
+const pool = require('../base/database');
 
 // Registrar nuevo cierre de caja
 router.post('/cierres-caja', async (req, res) => {
     try {
         const { sucursal_id, total_productos, ganancias_totales, detalles } = req.body;
 
-        const [result] = await db.query(
+        const [result] = await pool.query(
             'INSERT INTO cierres_caja SET ?',
             {
                 sucursal_id,
@@ -19,7 +19,7 @@ router.post('/cierres-caja', async (req, res) => {
         );
 
         // Devuelve el ID correctamente
-        const [nuevoCierre] = await db.query(
+        const [nuevoCierre] = await pool.query(
             'SELECT * FROM cierres_caja WHERE id = ?',
             [result.insertId]
         );
@@ -64,7 +64,7 @@ router.get('/cierres-caja/:sucursalId', async (req, res) => {
 
         query += ' ORDER BY c.fecha_registro DESC';
 
-        const [rows] = await db.query(query, params);
+        const [rows] = await pool.query(query, params);
 
         // Parsear detalles si es string
         for (const row of rows) {
