@@ -26,7 +26,7 @@ jobs:
           context: ./backend/api-gateway
           push: true
           tags: |
-            luca011/api-gateway-atales:${{ github.ref_name == 'main' && 'prod' || github.ref_name }}-v1.0.1
+            luca011/api-gateway-atales:${{ github.ref_name == 'main' && 'prod' || github.ref_name }}-v1.0.2
 
       - name: Checkout repo de infraestructura
         uses: actions/checkout@v3

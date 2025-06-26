@@ -47,10 +47,7 @@ const allowedRegex = [
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin) {
-      // Permitir requests sin origin (curl, Postman, health-check internos)
-      return callback(null, true);
-    }
+    if (!origin) return callback(null, true); // Permitir curl, Postman, etc.
 
     const isAllowed = allowedOrigins.includes(origin) ||
       allowedRegex.some(regex => regex.test(origin));
@@ -108,14 +105,14 @@ const proxyOptions = {
 app.use('/api/auth', createProxyMiddleware({
   ...proxyOptions,
   target: `http://auth-service:${process.env.AUTH_SERVICE_PORT}`,
-  pathRewrite: { '^/api/auth': '' }
+  pathRewrite: { '^/api/auth': '' } // auth-service espera /register, /login, etc.
 }));
 
-// Proxy hacia business-service
+// Proxy hacia negocio-service
 app.use('/api/business', createProxyMiddleware({
   ...proxyOptions,
   target: `http://business-service:${process.env.BUSINESS_SERVICE_PORT}`,
-  pathRewrite: { '^/api/business': '' }
+  pathRewrite: { '^/api/business': '' } // negocio-service espera rutas limpias
 }));
 
 // ==================== 6. Health Check ====================
