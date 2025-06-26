@@ -1,89 +1,80 @@
 const API_CONFIG = {
   getBaseURL: function() {
-    // En producción (cuando está servido desde el mismo dominio)
-    // siempre usar rutas relativas que van a través del Ingress
-    if (window.location.hostname === 'atales.local') {
-      return '/api';
+    // Detectar automáticamente el entorno
+    const isProduction = !this.isDevelopment();
+    const isELB = window.location.hostname.includes('elb.amazonaws.com');
+    
+    // En producción (AWS ELB o dominio real)
+    if (isProduction || isELB) {
+      return '/api'; // Usar ruta relativa
     }
     
-    // Para desarrollo local (cuando abres index.html directamente)
-    if (window.location.protocol === 'file:') {
-      return 'https://atales.local/api';
-    }
-    
-    // Para desarrollo con servidor local
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-      return window.location.protocol === 'https:' 
-        ? 'https://localhost:3000/api' 
-        : 'http://localhost:3000/api';
-    }
-    
-    // Fallback: usar el mismo protocolo y host actual
-    return `/api`;
+    // Para desarrollo local
+    return 'http://localhost:3000/api';
   },
   
-  // Configuración adicional para debugging
   isDevelopment: function() {
     return window.location.hostname === 'localhost' || 
            window.location.hostname === '127.0.0.1' ||
            window.location.protocol === 'file:';
   },
   
-  // Headers por defecto para las requests
   getDefaultHeaders: function() {
     return {
       'Content-Type': 'application/json',
       'Accept': 'application/json'
     };
+  },
+  
+  // Nueva función para manejar errores de API
+  handleApiError: function(error) {
+    console.error('API Error:', error);
+    // Aquí puedes agregar lógica para mostrar notificaciones al usuario
+    throw error; // Re-lanzar para manejo adicional
   }
 };
 
-// Configurar la URL base global
+// Configuración global
 window.API_BASE_URL = API_CONFIG.getBaseURL();
 
-// Logging para debugging
+// Logging inicial
 console.log('🔧 Configuración API:');
 console.log('   - Hostname:', window.location.hostname);
 console.log('   - Protocol:', window.location.protocol);
 console.log('   - API Base URL:', window.API_BASE_URL);
 console.log('   - Development mode:', API_CONFIG.isDevelopment());
 
-// Función helper para hacer requests con manejo de errores
+// Función mejorada para requests
 window.apiRequest = async function(endpoint, options = {}) {
   const url = `${window.API_BASE_URL}${endpoint.startsWith('/') ? endpoint : '/' + endpoint}`;
   
   const defaultOptions = {
-    headers: {
-      ...API_CONFIG.getDefaultHeaders(),
-      ...options.headers
-    },
-    credentials: 'include' // Para cookies de sesión
+    headers: API_CONFIG.getDefaultHeaders(),
+    credentials: 'include',
+    ...options
   };
   
-  const finalOptions = { ...defaultOptions, ...options };
-  
-  console.log(`🌐 API Request: ${finalOptions.method || 'GET'} ${url}`);
+  console.log(`🌐 API Request: ${defaultOptions.method || 'GET'} ${url}`);
   
   try {
-    const response = await fetch(url, finalOptions);
+    const response = await fetch(url, defaultOptions);
     
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`❌ API Error ${response.status}:`, errorText);
-      throw new Error(`HTTP ${response.status}: ${errorText}`);
+      const errorData = await response.json().catch(() => ({}));
+      const error = new Error(errorData.message || `HTTP ${response.status}`);
+      error.status = response.status;
+      error.data = errorData;
+      throw error;
     }
     
-    const data = await response.json();
-    console.log(`✅ API Success: ${finalOptions.method || 'GET'} ${url}`);
-    return data;
+    return await response.json();
     
   } catch (error) {
-    console.error(`💥 Request failed:`, error);
-    throw error;
+    return API_CONFIG.handleApiError(error);
   }
 };
 
-// Export para usar en otros archivos si es necesario
+// Export para Node (si es necesario)
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = API_CONFIG;
 }
