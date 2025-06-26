@@ -5,7 +5,7 @@ const API_CONFIG = {
     // Si estamos en AWS ELB del frontend, debemos apuntar al LoadBalancer del API
     if (hostname.includes('elb.amazonaws.com')) {
       return 'http://k8s-test-apigatew-7dc1118d7f-57b70f1b72a49ae8.elb.us-east-1.amazonaws.com.elb.amazonaws.com/api'; 
-      // ⚠️ Acá reemplazá <API-GATEWAY-LB-DNS> por el DNS del LoadBalancer del API Gateway
+      // ⚠️ Acá reemplazá <API-GATEWAY-LB-DNS> por el DNS del LoadBalancer del API Gateway.
     }
 
     // Modo desarrollo local
