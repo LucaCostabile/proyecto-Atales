@@ -11,50 +11,50 @@ jobs:
   build-push-and-update-secrets:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout código
-      uses: actions/checkout@v3
+      - name: Checkout código
+        uses: actions/checkout@v3
 
-    - name: Log in to DockerHub
-      uses: docker/login-action@v2
-      with:
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Log in to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-    - name: Build and push frontend image
-      uses: docker/build-push-action@v5
-      with:
-        context: ./frontend
-        push: true
-        tags: |
-          luca011/frontend-atales:${{ github.ref_name == 'main' && 'prod' || github.ref_name }}-latest
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          push: true
+          tags: |
+            luca011/frontend-atales:${{ github.ref_name == 'main' && 'prod' || github.ref_name }}-latest
 
-    - name: Checkout repo de infraestructura
-      uses: actions/checkout@v3
-      with:
-        repository: LucaCostabile/infrastructura-Atales
-        path: infra
-        token: ${{ secrets.PAT_GITHUB }}
+      - name: Checkout repo de infraestructura
+        uses: actions/checkout@v3
+        with:
+          repository: LucaCostabile/infrastructura-Atales
+          path: infra
+          token: ${{ secrets.PAT_GITHUB }}
 
-    - name: Generar Secret YAML (TLS)
-      run: |
-        mkdir -p infra/secrets/dev
-        cat <<EOF > infra/secrets/dev/frontend-secrets.yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: frontend-tls
-  namespace: dev
-type: kubernetes.io/tls
-data:
-  tls.crt: $(echo -n "${{ secrets.TLS_CRT }}" | base64)
-  tls.key: $(echo -n "${{ secrets.TLS_KEY }}" | base64)
-EOF
+      - name: Generar Secret YAML (TLS)
+        run: |
+          mkdir -p infra/secrets/dev
+          {
+            echo "apiVersion: v1"
+            echo "kind: Secret"
+            echo "metadata:"
+            echo "  name: frontend-tls"
+            echo "  namespace: dev"
+            echo "type: kubernetes.io/tls"
+            echo "data:"
+            echo "  tls.crt: $(echo -n \"${{ secrets.TLS_CRT }}\" | base64)"
+            echo "  tls.key: $(echo -n \"${{ secrets.TLS_KEY }}\" | base64)"
+          } > infra/secrets/dev/frontend-secrets.yaml
 
-    - name: Commit y push al repo de infraestructura
-      run: |
-        cd infra
-        git config user.email "lucacostabile011@gmail.com"
-        git config user.name "Luca Costabile"
-        git add secrets/dev/frontend-secrets.yaml
-        git commit -m "ci(frontend): actualiza certificados TLS"
-        git push
+      - name: Commit y push al repo de infraestructura
+        run: |
+          cd infra
+          git config user.email "ci@github.com"
+          git config user.name "GitHub CI"
+          git add secrets/dev/frontend-secrets.yaml
+          git commit -m "ci(frontend): actualiza certificados TLS"
+          git push

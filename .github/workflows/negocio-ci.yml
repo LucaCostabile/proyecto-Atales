@@ -11,51 +11,51 @@ jobs:
   build-push-and-update-secrets:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout código
-      uses: actions/checkout@v3
+      - name: Checkout código
+        uses: actions/checkout@v3
 
-    - name: Log in to DockerHub
-      uses: docker/login-action@v2
-      with:
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Log in to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-    - name: Build and push negocio-service image
-      uses: docker/build-push-action@v5
-      with:
-        context: ./backend/negocio-service
-        push: true
-        tags: |
-          luca011/negocio-service-atales:${{ github.ref_name == 'main' && 'prod' || github.ref_name }}-latest
+      - name: Build and push negocio-service image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend/negocio-service
+          push: true
+          tags: |
+            luca011/negocio-service-atales:${{ github.ref_name == 'main' && 'prod' || github.ref_name }}-latest
 
-    - name: Checkout repo de infraestructura
-      uses: actions/checkout@v3
-      with:
-        repository: LucaCostabile/infrastructura-Atales
-        path: infra
-        token: ${{ secrets.PAT_GITHUB }}
+      - name: Checkout repo de infraestructura
+        uses: actions/checkout@v3
+        with:
+          repository: LucaCostabile/infrastructura-Atales
+          path: infra
+          token: ${{ secrets.PAT_GITHUB }}
 
-    - name: Generar Secret YAML
-      run: |
-        mkdir -p infra/secrets/dev
-        cat <<EOF > infra/secrets/dev/negocio-secrets.yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: negocio-secrets
-  namespace: dev
-type: Opaque
-data:
-  DB_PASSWORD: $(echo -n "${{ secrets.DB_PASSWORD }}" | base64)
-  DB_USER: $(echo -n "${{ secrets.DB_USER }}" | base64)
-  EXTERNAL_API_KEY: $(echo -n "${{ secrets.EXTERNAL_API_KEY }}" | base64)
-EOF
+      - name: Generar Secret YAML
+        run: |
+          mkdir -p infra/secrets/dev
+          {
+            echo "apiVersion: v1"
+            echo "kind: Secret"
+            echo "metadata:"
+            echo "  name: negocio-secrets"
+            echo "  namespace: dev"
+            echo "type: Opaque"
+            echo "data:"
+            echo "  DB_PASSWORD: $(echo -n \"${{ secrets.DB_PASSWORD }}\" | base64)"
+            echo "  DB_USER: $(echo -n \"${{ secrets.DB_USER }}\" | base64)"
+            echo "  EXTERNAL_API_KEY: $(echo -n \"${{ secrets.EXTERNAL_API_KEY }}\" | base64)"
+          } > infra/secrets/dev/negocio-secrets.yaml
 
-    - name: Commit y push al repo de infraestructura
-      run: |
-        cd infra
-        git config user.email "lucacostabile011@gmail.com"
-        git config user.name "Luca Costabile"
-        git add secrets/dev/negocio-secrets.yaml
-        git commit -m "ci(negocio): actualiza secretos"
-        git push
+      - name: Commit y push al repo de infraestructura
+        run: |
+          cd infra
+          git config user.email "ci@github.com"
+          git config user.name "GitHub CI"
+          git add secrets/dev/negocio-secrets.yaml
+          git commit -m "ci(negocio): actualiza secretos"
+          git push
