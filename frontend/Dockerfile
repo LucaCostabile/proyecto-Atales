@@ -1,16 +1,12 @@
 FROM nginx:alpine
 
-# Eliminar config default
+# Elimina la configuración por defecto (esto ya lo tienes)
 RUN rm /etc/nginx/conf.d/default.conf
 
-# Copiar configuración
-COPY nginx.conf /etc/nginx/conf.d
+# Copia TU configuración de Nginx al directorio correcto
+COPY nginx.conf /etc/nginx/conf.d/default.conf  # ¡Asegúrate de que la ruta sea exactamente esta!
 
-# Copiar archivos estáticos
+# Copia los archivos estáticos (esto ya lo tienes)
 COPY . /usr/share/nginx/html
-
-# Asegurar permisos
-RUN chown -R nginx:nginx /usr/share/nginx/html && \
-    chmod -R 755 /usr/share/nginx/html
 
 EXPOSE 80 443
