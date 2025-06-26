@@ -61,7 +61,6 @@ jobs:
           
           echo "Actualizando sealed secrets para ambiente: $ENV"
           
-          # Crear directorio si no existe
           mkdir -p "sealed-secrets/$ENV"
           
           # Verificar que existe la clave pública
