@@ -39,8 +39,8 @@ const allowedOrigins = [
   'http://atales.local',
   'http://192.168.49.2',
   process.env.FRONTEND_URL,
-  // Permitir cualquier dominio ELB de AWS
-  /\.elb\.amazonaws\.com$/
+  /\.elb\.amazonaws\.com$/,  // Permitir cualquier dominio ELB
+  /\.elb\.us-east-1\.amazonaws\.com$/  // Permitir específicamente US-EAST-1
 ].filter(Boolean);
 
 app.use(cors({
