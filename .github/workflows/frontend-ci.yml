@@ -26,7 +26,7 @@ jobs:
           context: ./frontend
           push: true
           tags: |
-            luca011/frontend-atales:${{ github.ref_name == 'main' && 'prod' || github.ref_name }}-v1.0.2
+            luca011/frontend-atales:${{ github.ref_name == 'main' && 'prod' || github.ref_name }}-v1.0.3
 
       - name: Checkout repo de infraestructura
         uses: actions/checkout@v3
