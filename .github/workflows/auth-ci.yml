@@ -8,7 +8,7 @@ on:
       - '.github/workflows/auth-ci.yml'
 
 jobs:
-  build-push-and-update-secrets:
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout código
@@ -35,11 +35,18 @@ jobs:
           path: infra
           token: ${{ secrets.PAT_GITHUB }}
 
-      - name: Cambiar a la rama dev
+      - name: Cambiar a la rama correspondiente
         run: |
           cd infra
-          git fetch origin dev
-          git checkout -b dev origin/dev
+          BRANCH=${{ github.ref_name }}
+          git fetch origin $BRANCH
+          git checkout -b $BRANCH origin/$BRANCH || git checkout $BRANCH
+
+      - name: Configurar kubectl
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBECONFIG }}" | base64 -d > ~/.kube/config
+          chmod 600 ~/.kube/config
 
       - name: Instalar kubeseal
         run: |
@@ -47,20 +54,25 @@ jobs:
           tar -xvzf kubeseal-0.18.0-linux-amd64.tar.gz
           sudo install -m 755 kubeseal /usr/local/bin/kubeseal
 
-      - name: Configurar kubectl para acceder al cluster
+      - name: Actualizar Sealed Secrets
         run: |
-          # Aquí necesitas configurar kubectl para acceder a tu cluster
-          # Ejemplo con kubeconfig desde secrets:
-          echo "${{ secrets.KUBECONFIG }}" | base64 -d > ~/.kube/config
-          chmod 600 ~/.kube/config
+          cd infra
           
-          # O si usas un método diferente, ajusta según tu configuración
-
-      - name: Generar Sealed Secret
-        run: |
-          # Crear un secret temporal
+          # Determinar el ambiente basado en la rama
+          case "${{ github.ref_name }}" in
+            "main") ENV="prod" ;;
+            "test") ENV="test" ;;
+            *) ENV="dev" ;;
+          esac
+          
+          echo "Actualizando sealed secrets para ambiente: $ENV"
+          
+          # Crear directorio si no existe
+          mkdir -p "sealed-secrets/$ENV"
+          
+          # Generar nuevo sealed secret con valores actualizados
           kubectl create secret generic backend-secrets \
-            --namespace=dev \
+            --namespace=$ENV \
             --from-literal=CRYPTO_SECRET="${{ secrets.CRYPTO_SECRET }}" \
             --from-literal=DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
             --from-literal=DB_USER="${{ secrets.DB_USER }}" \
@@ -69,18 +81,25 @@ jobs:
             --from-literal=GMAIL_USER="${{ secrets.GMAIL_USER }}" \
             --from-literal=JWT_SECRET_KEY="${{ secrets.JWT_SECRET_KEY }}" \
             --dry-run=client -o yaml | \
-          kubeseal -o yaml > infra/sealed-secrets/dev/auth-sealed-secrets.yaml
+          kubeseal -o yaml > "sealed-secrets/$ENV/auth-sealed-secrets.yaml"
 
-      - name: Commit y push al repo de infraestructura
+      - name: Commit y push cambios
         run: |
           cd infra
           git config user.email "lucacostabile011@gmail.com"
           git config user.name "Luca Costabile CI"
-          git pull --no-rebase origin dev
           
-          # Crear directorio si no existe
-          mkdir -p sealed-secrets/dev
+          BRANCH=${{ github.ref_name }}
+          ENV=$([[ "$BRANCH" == "main" ]] && echo "prod" || [[ "$BRANCH" == "test" ]] && echo "test" || echo "dev")
           
-          git add sealed-secrets/dev/auth-sealed-secrets.yaml
-          git commit -m "ci(auth): actualiza sealed secrets"
-          git push origin dev
+          git pull --no-rebase origin $BRANCH
+          git add "sealed-secrets/$ENV/auth-sealed-secrets.yaml"
+          
+          # Solo hacer commit si hay cambios
+          if ! git diff --cached --quiet; then
+            git commit -m "ci(auth): actualiza sealed secrets para $ENV"
+            git push origin $BRANCH
+            echo "✅ Sealed secrets actualizados para ambiente $ENV"
+          else
+            echo "ℹ️ No hay cambios en los sealed secrets"
+          fi
