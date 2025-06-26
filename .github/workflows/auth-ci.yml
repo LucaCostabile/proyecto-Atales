@@ -8,7 +8,7 @@ on:
       - '.github/workflows/auth-ci.yml'
 
 jobs:
-  build-and-deploy:
+  build-and-update-secrets:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout código
@@ -42,19 +42,13 @@ jobs:
           git fetch origin $BRANCH
           git checkout -b $BRANCH origin/$BRANCH || git checkout $BRANCH
 
-      - name: Configurar kubectl
-        run: |
-          mkdir -p ~/.kube
-          echo "${{ secrets.KUBECONFIG }}" | base64 -d > ~/.kube/config
-          chmod 600 ~/.kube/config
-
       - name: Instalar kubeseal
         run: |
           wget https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.18.0/kubeseal-0.18.0-linux-amd64.tar.gz
           tar -xvzf kubeseal-0.18.0-linux-amd64.tar.gz
           sudo install -m 755 kubeseal /usr/local/bin/kubeseal
 
-      - name: Actualizar Sealed Secrets
+      - name: Actualizar Sealed Secrets (sin kubectl)
         run: |
           cd infra
           
@@ -70,18 +64,38 @@ jobs:
           # Crear directorio si no existe
           mkdir -p "sealed-secrets/$ENV"
           
-          # Generar nuevo sealed secret con valores actualizados
-          kubectl create secret generic backend-secrets \
-            --namespace=$ENV \
-            --from-literal=CRYPTO_SECRET="${{ secrets.CRYPTO_SECRET }}" \
-            --from-literal=DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
-            --from-literal=DB_USER="${{ secrets.DB_USER }}" \
-            --from-literal=EXTERNAL_API_KEY="${{ secrets.EXTERNAL_API_KEY }}" \
-            --from-literal=GMAIL_APP_PASSWORD="${{ secrets.GMAIL_APP_PASSWORD }}" \
-            --from-literal=GMAIL_USER="${{ secrets.GMAIL_USER }}" \
-            --from-literal=JWT_SECRET_KEY="${{ secrets.JWT_SECRET_KEY }}" \
-            --dry-run=client -o yaml | \
-          kubeseal -o yaml > "sealed-secrets/$ENV/auth-sealed-secrets.yaml"
+          # Verificar que existe la clave pública
+          if [ ! -f "sealed-secrets-cert.pem" ]; then
+            echo "❌ Error: No se encontró sealed-secrets-cert.pem"
+            echo "Debes ejecutar el script de setup localmente primero"
+            exit 1
+          fi
+          
+          # Generar secret temporal en formato YAML
+          cat > temp-secret.yaml << EOF
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: backend-secrets
+            namespace: $ENV
+          type: Opaque
+          data:
+            CRYPTO_SECRET: $(echo -n "${{ secrets.CRYPTO_SECRET }}" | base64 -w 0)
+            DB_PASSWORD: $(echo -n "${{ secrets.DB_PASSWORD }}" | base64 -w 0)
+            DB_USER: $(echo -n "${{ secrets.DB_USER }}" | base64 -w 0)
+            EXTERNAL_API_KEY: $(echo -n "${{ secrets.EXTERNAL_API_KEY }}" | base64 -w 0)
+            GMAIL_APP_PASSWORD: $(echo -n "${{ secrets.GMAIL_APP_PASSWORD }}" | base64 -w 0)
+            GMAIL_USER: $(echo -n "${{ secrets.GMAIL_USER }}" | base64 -w 0)
+            JWT_SECRET_KEY: $(echo -n "${{ secrets.JWT_SECRET_KEY }}" | base64 -w 0)
+          EOF
+          
+          # Convertir a sealed secret usando la clave pública
+          kubeseal --cert sealed-secrets-cert.pem -f temp-secret.yaml -w "sealed-secrets/$ENV/auth-sealed-secrets.yaml"
+          
+          # Limpiar archivo temporal
+          rm temp-secret.yaml
+          
+          echo "✅ Sealed secret actualizado para ambiente $ENV"
 
       - name: Commit y push cambios
         run: |
