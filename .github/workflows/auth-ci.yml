@@ -60,7 +60,7 @@ jobs:
           cd infra
           git config user.email "lucacostabile011@gmail.com"
           git config user.name "Luca Costabile CI"
-          git pull --rebase origin dev
+          git pull origin dev
           git add secrets/dev/auth-secrets.yaml
           git commit -m "ci(auth): actualiza secretos"
           git push origin dev
