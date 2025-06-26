@@ -4,7 +4,7 @@ const API_CONFIG = {
 
     // Si estamos en AWS ELB del frontend, debemos apuntar al LoadBalancer del API
     if (hostname.includes('elb.amazonaws.com')) {
-      return 'k8s-test-apigatew-2abcee9251-75e6251ee384788d.elb.us-east-1.amazonaws.com/api'; 
+      return 'http://k8s-test-apigatew-2abcee9251-75e6251ee384788d.elb.us-east-1.amazonaws.com/api'; 
       // ⚠️ Acá reemplazá <API-GATEWAY-LB-DNS> por el DNS del LoadBalancer del API Gateway.
     }
 
