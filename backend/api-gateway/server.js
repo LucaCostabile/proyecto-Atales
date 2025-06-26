@@ -19,7 +19,7 @@ REQUIRED_ENV.forEach(env => {
   }
 });
 
-// ==================== 2. Middlewares Esenciales ====================
+// ==================== 2. Middlewares ====================
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(helmet());
@@ -31,14 +31,14 @@ app.use((req, res, next) => {
   next();
 });
 
-// ==================== 3. Configuración CORS Mejorada ====================
+// ==================== 3. Configuración CORS Fijo ====================
 const allowedOrigins = [
   'http://localhost:3000',
   'https://atales.local',
   'http://atales.local',
   'http://192.168.49.2',
-  process.env.FRONTEND_URL
-].filter(Boolean);
+  'http://k8s-test-frontend-960fd9ef3e-77778169f3c4bba7.elb.us-east-1.amazonaws.com'
+];
 
 const allowedRegex = [
   /\.elb\.amazonaws\.com$/,
@@ -69,17 +69,17 @@ app.use(cors({
 
 // ==================== 4. Rate Limiting ====================
 const limiter = rateLimit({
-  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
-  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 1000,
+  windowMs: 15 * 60 * 1000,
+  max: 1000,
   message: { error: 'Too many requests' },
   skip: req => req.ip === '::ffff:127.0.0.1' || req.path === '/api/health'
 });
 app.use(limiter);
 
-// ==================== 5. Configuración de Proxies ====================
+// ==================== 5. Proxies ====================
 const proxyOptions = {
   changeOrigin: true,
-  timeout: parseInt(process.env.PROXY_TIMEOUT) || 30000,
+  timeout: 30000,
   logLevel: 'debug',
   onProxyReq: (proxyReq, req) => {
     proxyReq.setHeader('X-Forwarded-For', req.ip);
@@ -134,7 +134,6 @@ app.get('/api/health', async (req, res) => {
 });
 
 // ==================== 7. Manejo de Errores ====================
-// Manejo de errores generales
 app.use((err, req, res, next) => {
   console.error('Server Error:', err.stack);
   res.status(err.status || 500).json({
@@ -143,7 +142,6 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Manejo de 404
 app.use((req, res) => {
   res.status(404).json({ error: 'Endpoint not found' });
 });
