@@ -1,30 +1,10 @@
 const API_CONFIG = {
-  getBaseURL: function() {
-    const { hostname, protocol } = window.location;
-
-    // Si estamos en AWS ELB del frontend, debemos apuntar al LoadBalancer del API
-    if (hostname.includes('elb.amazonaws.com')) {
-      return 'http://k8s-test-apigatew-2abcee9251-75e6251ee384788d.elb.us-east-1.amazonaws.com/api'; 
-      // ⚠️ Acá reemplazá <API-GATEWAY-LB-DNS> por el DNS del LoadBalancer del API Gateway.
-    }
-
-    // Modo desarrollo local
-    if (this.isDevelopment()) {
-      return 'http://localhost:3000/api'; 
-    }
-
-    // Si estás en una red local o dominio personalizado
-    return '/api'; 
+  getBaseURL: function () {
+    // 🚨 Forzar el uso directo del LoadBalancer del API Gateway
+    return 'http://k8s-test-apigatew-2abcee9251-75e6251ee384788d.elb.us-east-1.amazonaws.com/api';
   },
 
-  isDevelopment: function() {
-    const { hostname, protocol } = window.location;
-    return hostname === 'localhost' || 
-           hostname === '127.0.0.1' ||
-           protocol === 'file:';
-  },
-
-  getDefaultHeaders: function() {
+  getDefaultHeaders: function () {
     return {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
@@ -32,7 +12,7 @@ const API_CONFIG = {
     };
   },
 
-  handleApiError: async function(response) {
+  handleApiError: async function (response) {
     let errorData;
     try {
       errorData = await response.json();
@@ -58,7 +38,7 @@ const API_CONFIG = {
 window.API_BASE_URL = API_CONFIG.getBaseURL();
 
 // ✅ Función para requests
-window.apiRequest = async function(endpoint, options = {}) {
+window.apiRequest = async function (endpoint, options = {}) {
   const url = `${window.API_BASE_URL}${endpoint.startsWith('/') ? endpoint : '/' + endpoint}`;
 
   const config = {
@@ -87,10 +67,7 @@ window.apiRequest = async function(endpoint, options = {}) {
   return response.json();
 };
 
-
+// ✅ Log para confirmar que se está usando la URL correcta
 console.log('🔧 Configuración API:', {
-  hostname: window.location.hostname,
-  protocol: window.location.protocol,
-  apiBaseUrl: window.API_BASE_URL,
-  isDevelopment: API_CONFIG.isDevelopment()
+  apiBaseUrl: window.API_BASE_URL
 });
