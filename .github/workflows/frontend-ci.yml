@@ -56,7 +56,7 @@ jobs:
           git config user.email "lucacostabile011@gmail.com"
           git config user.name "Luca Costabile CI"
           git checkout dev
-          git pull origin dev
+          git pull --no-rebase origin dev
           git add secrets/dev/frontend-secrets.yaml
           git commit -m "ci(frontend): actualiza certificados TLS"
           git push origin dev
