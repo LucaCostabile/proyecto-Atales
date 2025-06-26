@@ -87,7 +87,7 @@ window.apiRequest = async function(endpoint, options = {}) {
   return response.json();
 };
 
-// ✅ Debug inicial
+
 console.log('🔧 Configuración API:', {
   hostname: window.location.hostname,
   protocol: window.location.protocol,
