@@ -83,7 +83,6 @@ jobs:
             CRYPTO_SECRET: $(echo -n "${{ secrets.CRYPTO_SECRET }}" | base64 -w 0)
             DB_PASSWORD: $(echo -n "${{ secrets.DB_PASSWORD }}" | base64 -w 0)
             DB_USER: $(echo -n "${{ secrets.DB_USER }}" | base64 -w 0)
-            EXTERNAL_API_KEY: $(echo -n "${{ secrets.EXTERNAL_API_KEY }}" | base64 -w 0)
             GMAIL_APP_PASSWORD: $(echo -n "${{ secrets.GMAIL_APP_PASSWORD }}" | base64 -w 0)
             GMAIL_USER: $(echo -n "${{ secrets.GMAIL_USER }}" | base64 -w 0)
             JWT_SECRET_KEY: $(echo -n "${{ secrets.JWT_SECRET_KEY }}" | base64 -w 0)

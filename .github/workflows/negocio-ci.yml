@@ -82,7 +82,6 @@ jobs:
           data:
             DB_PASSWORD: $(echo -n "${{ secrets.DB_PASSWORD }}" | base64 -w 0)
             DB_USER: $(echo -n "${{ secrets.DB_USER }}" | base64 -w 0)
-            EXTERNAL_API_KEY: $(echo -n "${{ secrets.EXTERNAL_API_KEY }}" | base64 -w 0)
           EOF
           
           # Convertir a sealed secret usando la clave pública
