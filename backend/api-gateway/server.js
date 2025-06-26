@@ -6,7 +6,7 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const { checkMicroservicesHealth } = require('./health-checker');
 
-// Configuración inicial
+// 🔧 Configuración inicial
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -25,26 +25,40 @@ app.use(express.urlencoded({ extended: true }));
 app.use(helmet());
 app.use(morgan(process.env.LOG_FORMAT || 'dev'));
 
-// ==================== 3. Configuración CORS Ampliada ====================
+// Debug incoming origins
+app.use((req, res, next) => {
+  console.log('🌐 Incoming request from Origin:', req.headers.origin);
+  next();
+});
+
+// ==================== 3. Configuración CORS Mejorada ====================
 const allowedOrigins = [
   'http://localhost:3000',
-  'https://atales.local', 
+  'https://atales.local',
   'http://atales.local',
   'http://192.168.49.2',
-  process.env.FRONTEND_URL,
+  process.env.FRONTEND_URL
+].filter(Boolean);
+
+const allowedRegex = [
   /\.elb\.amazonaws\.com$/,
   /\.elb\.us-east-1\.amazonaws\.com$/
-].filter(Boolean);
+];
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.some(allowed => {
-      if (allowed instanceof RegExp) return allowed.test(origin);
-      return allowed === origin;
-    })) {
+    if (!origin) {
+      // Permitir requests sin origin (curl, Postman, health-check internos)
+      return callback(null, true);
+    }
+
+    const isAllowed = allowedOrigins.includes(origin) ||
+      allowedRegex.some(regex => regex.test(origin));
+
+    if (isAllowed) {
       callback(null, true);
     } else {
-      console.warn(`CORS bloqueado: ${origin}`);
+      console.warn(`❌ CORS bloqueado para: ${origin}`);
       callback(new Error('Not allowed by CORS'));
     }
   },
@@ -62,7 +76,7 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-// ==================== 5. Configuración de Proxies Mejorada ====================
+// ==================== 5. Configuración de Proxies ====================
 const proxyOptions = {
   changeOrigin: true,
   timeout: parseInt(process.env.PROXY_TIMEOUT) || 30000,
@@ -71,8 +85,7 @@ const proxyOptions = {
     proxyReq.setHeader('X-Forwarded-For', req.ip);
     proxyReq.setHeader('X-Forwarded-Host', req.hostname);
     proxyReq.setHeader('X-Forwarded-Proto', req.protocol);
-    
-    // Manejo especial para body en POST/PUT
+
     if (['POST', 'PUT'].includes(req.method)) {
       if (req.body && !req.bodyRead) {
         const bodyData = JSON.stringify(req.body);
@@ -84,43 +97,44 @@ const proxyOptions = {
   },
   onError: (err, req, res) => {
     console.error(`Proxy error for ${req.path}:`, err);
-    res.status(502).json({ 
+    res.status(502).json({
       error: 'Bad Gateway',
       message: 'Error connecting to internal service'
     });
   }
 };
 
-// Configuración específica para auth-service
+// Proxy hacia auth-service
 app.use('/api/auth', createProxyMiddleware({
   ...proxyOptions,
   target: `http://auth-service:${process.env.AUTH_SERVICE_PORT}`,
   pathRewrite: { '^/api/auth': '' }
 }));
 
-// Configuración para business-service
+// Proxy hacia business-service
 app.use('/api/business', createProxyMiddleware({
   ...proxyOptions,
   target: `http://business-service:${process.env.BUSINESS_SERVICE_PORT}`,
   pathRewrite: { '^/api/business': '' }
 }));
 
-// Health Check
+// ==================== 6. Health Check ====================
 app.get('/api/health', async (req, res) => {
   const health = {
     status: 'healthy',
     service: 'api-gateway',
     timestamp: new Date().toISOString()
   };
-  
+
   if (req.query.detailed) {
     health.dependencies = await checkMicroservicesHealth();
   }
-  
+
   res.json(health);
 });
 
-// ==================== 6. Manejo de Errores ====================
+// ==================== 7. Manejo de Errores ====================
+// Manejo de errores generales
 app.use((err, req, res, next) => {
   console.error('Server Error:', err.stack);
   res.status(err.status || 500).json({
@@ -129,21 +143,21 @@ app.use((err, req, res, next) => {
   });
 });
 
-// 404 Handler
+// Manejo de 404
 app.use((req, res) => {
   res.status(404).json({ error: 'Endpoint not found' });
 });
 
-// ==================== 7. Inicio del Servidor ====================
+// ==================== 8. Inicio del Servidor ====================
 const server = app.listen(PORT, () => {
-  console.log(`🚀 API Gateway running on port ${PORT}`);
+  console.log(`🚀 API Gateway corriendo en puerto ${PORT}`);
   console.log('🔌 Proxies configurados:');
   console.log(`- /api/auth -> auth-service:${process.env.AUTH_SERVICE_PORT}`);
   console.log(`- /api/business -> business-service:${process.env.BUSINESS_SERVICE_PORT}`);
 });
 
 process.on('SIGTERM', () => {
-  console.log('🛑 Shutting down...');
+  console.log('🛑 Cerrando servidor...');
   server.close(() => process.exit(0));
 });
 
