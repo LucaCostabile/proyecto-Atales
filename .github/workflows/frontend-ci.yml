@@ -8,7 +8,7 @@ on:
       - '.github/workflows/frontend-ci.yml'
 
 jobs:
-  build-push-and-update-secrets:
+  build-and-update-secrets:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout código
@@ -35,32 +35,80 @@ jobs:
           path: infra
           token: ${{ secrets.PAT_GITHUB }}
 
-      - name: Cambiar a la rama dev
+      - name: Cambiar a la rama correspondiente
         run: |
           cd infra
-          git fetch origin dev
-          git checkout -b dev origin/dev
+          BRANCH=${{ github.ref_name }}
+          git fetch origin $BRANCH
+          git checkout -b $BRANCH origin/$BRANCH || git checkout $BRANCH
 
-      - name: Generar Secret YAML (TLS)
+      - name: Instalar kubeseal
         run: |
-          {
-            echo "apiVersion: v1"
-            echo "kind: Secret"
-            echo "metadata:"
-            echo "  name: frontend-tls"
-            echo "  namespace: dev"
-            echo "type: kubernetes.io/tls"
-            echo "data:"
-            echo "  tls.crt: $(echo -n \"${{ secrets.TLS_CRT }}\" | base64)"
-            echo "  tls.key: $(echo -n \"${{ secrets.TLS_KEY }}\" | base64)"
-          } > infra/secrets/dev/frontend-secrets.yaml
+          wget https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.18.0/kubeseal-0.18.0-linux-amd64.tar.gz
+          tar -xvzf kubeseal-0.18.0-linux-amd64.tar.gz
+          sudo install -m 755 kubeseal /usr/local/bin/kubeseal
 
-      - name: Commit y push al repo de infraestructura
+      - name: Actualizar Sealed Secrets (sin kubectl)
+        run: |
+          cd infra
+          
+          # Determinar el ambiente basado en la rama
+          case "${{ github.ref_name }}" in
+            "main") ENV="prod" ;;
+            "test") ENV="test" ;;
+            *) ENV="dev" ;;
+          esac
+          
+          echo "Actualizando sealed secrets para ambiente: $ENV"
+          
+          # Crear directorio si no existe
+          mkdir -p "sealed-secrets/$ENV"
+          
+          # Verificar que existe la clave pública
+          if [ ! -f "sealed-secrets-cert.pem" ]; then
+            echo "❌ Error: No se encontró sealed-secrets-cert.pem"
+            echo "Debes ejecutar el script de setup localmente primero"
+            exit 1
+          fi
+          
+          # Generar secret temporal en formato YAML (TLS)
+          cat > temp-secret.yaml << EOF
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: frontend-tls
+            namespace: $ENV
+          type: kubernetes.io/tls
+          data:
+            tls.crt: $(echo -n "${{ secrets.TLS_CRT }}" | base64 -w 0)
+            tls.key: $(echo -n "${{ secrets.TLS_KEY }}" | base64 -w 0)
+          EOF
+          
+          # Convertir a sealed secret usando la clave pública
+          kubeseal --cert sealed-secrets-cert.pem -f temp-secret.yaml -w "sealed-secrets/$ENV/frontend-sealed-secrets.yaml"
+          
+          # Limpiar archivo temporal
+          rm temp-secret.yaml
+          
+          echo "✅ Sealed secret actualizado para ambiente $ENV"
+
+      - name: Commit y push cambios
         run: |
           cd infra
           git config user.email "lucacostabile011@gmail.com"
           git config user.name "Luca Costabile CI"
-          git pull --no-rebase origin dev
-          git add secrets/dev/frontend-secrets.yaml
-          git commit -m "ci(frontend): actualiza TLS"
-          git push origin dev
+          
+          BRANCH=${{ github.ref_name }}
+          ENV=$([[ "$BRANCH" == "main" ]] && echo "prod" || [[ "$BRANCH" == "test" ]] && echo "test" || echo "dev")
+          
+          git pull --no-rebase origin $BRANCH
+          git add "sealed-secrets/$ENV/frontend-sealed-secrets.yaml"
+          
+          # Solo hacer commit si hay cambios
+          if ! git diff --cached --quiet; then
+            git commit -m "ci(frontend): actualiza sealed secrets para $ENV"
+            git push origin $BRANCH
+            echo "✅ Sealed secrets actualizados para ambiente $ENV"
+          else
+            echo "ℹ️ No hay cambios en los sealed secrets"
+          fi
