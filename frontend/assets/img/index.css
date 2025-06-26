@@ -1,0 +1,270 @@
+
+
+body {
+    padding-bottom: 20px;
+    background-color: #f9f9f9;
+    font-family: "Nunito Sans", sans-serif;
+}
+
+header {
+    background-color: #ad1111;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 80px;
+    z-index: 999px;
+    box-shadow: 0px 0px 6px 0px rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 0;
+    font-family: "Nunito Sans", sans-serif;
+    
+}
+
+.feature.col {
+    background-color: #f8f9fada; 
+    border-radius: 8px; 
+    padding: 10px; 
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); 
+    display: flex;
+    flex-direction: column; 
+    align-items: center; 
+    text-align: center; 
+    row-gap: 15px;
+    column-gap: 15px;
+}
+
+
+#navul {
+    margin-left: 450px;
+}
+
+.hero-section{
+    
+    /*background-color: #f9f9f9;*/
+    
+    background-image: url('atal-transformed.jpeg');
+    background-size: cover;
+    
+    
+}
+
+.t1{
+    margin-top: 30px;
+    color: black;
+    text-shadow: 0.9px 0.9px 0.9px white;
+    /*background-color: rgba(0, 0, 0, 0.2);*/
+    background-color: rgba(255, 255, 255, 0.439);
+    border-radius: 15px;
+}
+.h3j{
+    margin-top: 0px;
+}
+
+.rm{
+    color: white;
+    font-size: 24px;
+    margin-right: 2px;
+    margin-left: 2px; 
+}
+
+.iconm{
+    margin-top: 15px;
+    margin-bottom: 2px;
+}
+
+.mercaderia{
+    background-color: #f9f9f9
+}
+
+.mapa {
+    width: 380px;
+    height: 380px; 
+}
+
+#logo {
+    margin-left: -500px;
+    width: 100px;
+}
+
+.localidades{
+    background-color: #f9f9f9
+}
+
+.sobre-nosotros{
+    background-color: #f9f9f9
+}
+
+.foot-container {
+    background-color: #ad1111;
+    margin-top: -3rem;
+    margin-bottom: -3rem;
+}
+
+.nav-link {
+    color: white;
+    font-size: 24px;
+    margin-right: 2px;
+    margin-left: 2px;
+}
+
+p,
+a,
+h1,
+h2,
+h3 {
+    color: black;
+}
+
+.atal-logo{
+    margin-left: 3rem;
+    width: 550px;
+    height: 550px;
+    background-color: #ad1111;
+    border-radius:  300px;
+}
+.text-light{
+    margin-right: 0.5rem;
+}
+
+.iconos-redes{
+    margin-right: 1rem;
+}
+
+.col{
+    background-color: #f1f1f1;
+    border-radius: 15px;
+    padding: 0;
+    border: 1px;
+}
+
+.col-lg-6{
+    padding: 0%;
+    margin-top: 0%;
+    height: 550px;
+}
+.img-fluid{
+    justify-content: center;
+    margin: auto;
+    border-radius: 15px;
+    
+}
+
+.py-56{
+    background-color: transparent;
+    border-radius: 15px;
+    margin-top: 5rem;
+    
+}
+
+::-webkit-scrollbar {
+    width: 8px;
+    
+}
+
+::-webkit-scrollbar-track {
+    background: #ad111134;
+    
+}
+
+::-webkit-scrollbar-thumb {
+    background: #790b0b;
+    border-radius: 0px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #3d0606;
+    
+}
+.border-bottom{
+    font-size: 50px;
+    font-weight: bold;
+    
+}
+.mb-3{
+    font-size: 60px;
+    font-weight: bold;
+}
+
+.row-cols-lg-3{
+    margin: 1px;
+    padding: 1px;
+    border: 1px;
+}
+
+.iconos{
+    background-color: #f9f9f9;
+}
+
+
+@media (max-width: 600px) {
+    .nav-link, .rm{
+        font-size: 24px;
+        margin-right: 2px;
+        margin-left: 2px;
+    }
+    .atal-logo{
+        width: 300px;
+        height: 300px;
+        background-color: #ad1111;
+        border-radius: 300px;
+    } 
+    .hrm{
+        margin-left: 7%;
+    }
+    #navbar {
+        position: absolute;
+    }
+    h1, h2, p{
+        font-optical-sizing: auto;
+        font-weight: 500;
+        font-style: normal;
+        font-variation-settings: "wdth" 100;
+        font-size: 24px;
+    }
+    .h3m{
+        font-optical-sizing: auto;
+        font-weight: 500;
+        font-style: normal;
+        font-variation-settings: "wdth" 100;
+        font-size: 40px;
+    }
+}
+
+@media (min-width: 601px) and (max-width: 1024px) {
+
+    #navbar {
+        position: absolute;
+    }
+    .atal-logo {
+        width: 450px;
+        height: 450px;
+        background-color: #ad1111;
+        border-radius: 250px;
+    }
+    h1, h2, p{
+        font-optical-sizing: auto;
+        font-weight: 500;
+        font-style: normal;
+        font-variation-settings: "wdth" 100;
+        font-size: 24px;
+    }
+    .h3m{
+        font-optical-sizing: auto;
+        font-weight: 500;
+        font-style: normal;
+        font-variation-settings: "wdth" 100;
+        font-size: 40px;
+    }
+    .hero-section{
+        position: relative;
+    }
+    .col-lg-6{
+        margin-bottom: 300px;
+    }
+}
+
+
+

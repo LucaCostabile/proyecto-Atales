@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Historial de Cierres - Atales</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <img src="assets/img/images.png" alt="Logo Atales">
+            <h1>Historial de Cierres</h1>
+        </div>
+        <div class="botones-header">
+            <button id="btn-volver" class="boton">Volver al CRUD</button>
+        </div>
+    </header>
+
+    <main>
+        <div class="filtros">
+            <h3>Filtrar por:</h3>
+            <div>
+                <label for="fecha-inicio">Desde:</label>
+                <input type="date" id="fecha-inicio">
+                
+                <label for="fecha-fin">Hasta:</label>
+                <input type="date" id="fecha-fin">
+                
+                <button id="btn-filtrar" class="boton">Filtrar</button>
+            </div>
+        </div>
+
+        <div class="tabla-contenedor">
+            <table id="tabla-cierres">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Sucursal</th>
+                        <th>Productos</th>
+                        <th>Ganancias</th>
+                        <th>Fecha</th>
+                        <th>Detalles</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <div class="total-resumen">
+            <p>Total de productos vendidos: <span id="total-productos">0</span></p>
+            <p>Ganancias totales: $<span id="total-ganancias">0.00</span></p>
+        </div>
+    </main>
+
+    <div id="modal-detalles">
+        <div class="modal-contenido">
+            <button class="cerrar-modal" onclick="document.getElementById('modal-detalles').style.display='none'">✕</button>
+            <h3>Detalles del cierre</h3>
+            <div id="modal-detalles-contenido"></div>
+        </div>
+    </div>
+    <script src="js/config.js"></script>
+    <script src="js/cierres.js"></script>
+</body>
+</html>
