@@ -10,14 +10,8 @@ const { checkMicroservicesHealth } = require('./health-checker');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ==================== 🛡️ Validación de Entorno ====================
-const REQUIRED_ENV = [
-  'AUTH_SERVICE_PORT', 
-  'BUSINESS_SERVICE_PORT',
-  'DB_HOST',
-  'DB_NAME'
-];
-
+// ==================== 1. Validación de Entorno ====================
+const REQUIRED_ENV = ['AUTH_SERVICE_PORT', 'BUSINESS_SERVICE_PORT', 'DB_HOST', 'DB_NAME'];
 REQUIRED_ENV.forEach(env => {
   if (!process.env[env]) {
     console.error(`❌ ENV ERROR: ${env} no está definido`);
@@ -25,64 +19,50 @@ REQUIRED_ENV.forEach(env => {
   }
 });
 
-// ==================== 1. Middlewares Esenciales ====================
-app.set('trust proxy', ['loopback', 'linklocal', 'uniquelocal']);
+// ==================== 2. Middlewares Esenciales ====================
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(helmet());
 app.use(morgan(process.env.LOG_FORMAT || 'dev'));
 
-// ==================== 2. Configuración CORS ====================
+// ==================== 3. Configuración CORS Ampliada ====================
 const allowedOrigins = [
   'http://localhost:3000',
-  'https://atales.local',
+  'https://atales.local', 
   'http://atales.local',
   'http://192.168.49.2',
   process.env.FRONTEND_URL,
-  /\.elb\.amazonaws\.com$/,  // Permitir cualquier dominio ELB
-  /\.elb\.us-east-1\.amazonaws\.com$/  // Permitir específicamente US-EAST-1
+  /\.elb\.amazonaws\.com$/,
+  /\.elb\.us-east-1\.amazonaws\.com$/
 ].filter(Boolean);
 
 app.use(cors({
-  origin: allowedOrigins,
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.some(allowed => {
+      if (allowed instanceof RegExp) return allowed.test(origin);
+      return allowed === origin;
+    })) {
+      callback(null, true);
+    } else {
+      console.warn(`CORS bloqueado: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
-// ==================== 3. Rate Limiting ====================
+// ==================== 4. Rate Limiting ====================
 const limiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
   max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 1000,
-  message: { error: 'Demasiadas solicitudes. Intente más tarde.' },
+  message: { error: 'Too many requests' },
   skip: req => req.ip === '::ffff:127.0.0.1' || req.path === '/api/health'
 });
 app.use(limiter);
 
-// ==================== 4. Health Check ====================
-app.get('/api/health', async (req, res) => {
-  try {
-    const healthData = {
-      status: 'healthy',
-      service: 'api-gateway',
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime()
-    };
-
-    if (req.query.detailed === 'true') {
-      healthData.dependencies = await checkMicroservicesHealth();
-    }
-
-    res.status(200).json(healthData);
-  } catch (error) {
-    res.status(500).json({
-      status: 'unhealthy',
-      error: error.message
-    });
-  }
-});
-
-// ==================== 5. Configuración de Proxies ====================
+// ==================== 5. Configuración de Proxies Mejorada ====================
 const proxyOptions = {
   changeOrigin: true,
   timeout: parseInt(process.env.PROXY_TIMEOUT) || 30000,
@@ -91,80 +71,80 @@ const proxyOptions = {
     proxyReq.setHeader('X-Forwarded-For', req.ip);
     proxyReq.setHeader('X-Forwarded-Host', req.hostname);
     proxyReq.setHeader('X-Forwarded-Proto', req.protocol);
+    
+    // Manejo especial para body en POST/PUT
+    if (['POST', 'PUT'].includes(req.method) {
+      if (req.body && !req.bodyRead) {
+        const bodyData = JSON.stringify(req.body);
+        proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
+        proxyReq.write(bodyData);
+        req.bodyRead = true;
+      }
+    }
   },
   onError: (err, req, res) => {
     console.error(`Proxy error for ${req.path}:`, err);
     res.status(502).json({ 
       error: 'Bad Gateway',
-      message: 'Error al conectar con el servicio interno'
+      message: 'Error connecting to internal service'
     });
   }
 };
 
-// URLs de servicios
-const SERVICES = {
-  auth: `http://auth-service:${process.env.AUTH_SERVICE_PORT}`,
-  business: `http://business-service:${process.env.BUSINESS_SERVICE_PORT}`
-};
-
-// Configuración de proxies
+// Configuración específica para auth-service
 app.use('/api/auth', createProxyMiddleware({
   ...proxyOptions,
-  target: SERVICES.auth,
+  target: `http://auth-service:${process.env.AUTH_SERVICE_PORT}`,
   pathRewrite: { '^/api/auth': '' }
 }));
 
+// Configuración para business-service
 app.use('/api/business', createProxyMiddleware({
   ...proxyOptions,
-  target: SERVICES.business,
+  target: `http://business-service:${process.env.BUSINESS_SERVICE_PORT}`,
   pathRewrite: { '^/api/business': '' }
 }));
 
-// Proxy genérico (para compatibilidad)
-app.use('/api', createProxyMiddleware({
-  ...proxyOptions,
-  target: SERVICES.business
-}));
+// Health Check
+app.get('/api/health', async (req, res) => {
+  const health = {
+    status: 'healthy',
+    service: 'api-gateway',
+    timestamp: new Date().toISOString()
+  };
+  
+  if (req.query.detailed) {
+    health.dependencies = await checkMicroservicesHealth();
+  }
+  
+  res.json(health);
+});
 
 // ==================== 6. Manejo de Errores ====================
 app.use((err, req, res, next) => {
-  console.error('Error:', err.stack);
-  
-  const status = err.status || 500;
-  const response = {
-    error: err.message || 'Internal Server Error'
-  };
-  
-  if (process.env.NODE_ENV === 'development') {
-    response.stack = err.stack;
-  }
-  
-  res.status(status).json(response);
+  console.error('Server Error:', err.stack);
+  res.status(err.status || 500).json({
+    error: err.message || 'Internal Server Error',
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+  });
 });
 
-// Ruta no encontrada
+// 404 Handler
 app.use((req, res) => {
-  res.status(404).json({
-    error: 'Not Found',
-    path: req.path,
-    method: req.method
-  });
+  res.status(404).json({ error: 'Endpoint not found' });
 });
 
 // ==================== 7. Inicio del Servidor ====================
 const server = app.listen(PORT, () => {
   console.log(`🚀 API Gateway running on port ${PORT}`);
-  console.log('🔧 Environment:', process.env.NODE_ENV || 'development');
-  console.log('🔌 Services:', JSON.stringify(SERVICES, null, 2));
+  console.log('🔌 Proxies configurados:');
+  console.log(`- /api/auth -> auth-service:${process.env.AUTH_SERVICE_PORT}`);
+  console.log(`- /api/business -> business-service:${process.env.BUSINESS_SERVICE_PORT}`);
 });
 
-// Manejo de cierre
 process.on('SIGTERM', () => {
-  console.log('🛑 Received SIGTERM. Shutting down...');
-  server.close(() => {
-    console.log('✅ Server closed');
-    process.exit(0);
-  });
+  console.log('🛑 Shutting down...');
+  server.close(() => process.exit(0));
 });
 
 module.exports = app;
