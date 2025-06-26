@@ -105,7 +105,7 @@ const proxyOptions = {
 app.use('/api/auth', createProxyMiddleware({
   ...proxyOptions,
   target: `http://auth-service:${process.env.AUTH_SERVICE_PORT}`,
-  pathRewrite: { '^/api/auth': '/auth' } // auth-service espera /register, /login, etc.
+  pathRewrite: { '^/api/auth': '' } // 🔥 ✅ ASÍ ESTÁ BIEN
 }));
 
 // Proxy hacia negocio-service
