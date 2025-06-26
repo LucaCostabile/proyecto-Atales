@@ -29,4 +29,4 @@ jobs:
       with:
         context: ./frontend
         push: true
-        tags: luca011/frontend-atales:latest
+        tags: luca011/frontend-atales:v1
