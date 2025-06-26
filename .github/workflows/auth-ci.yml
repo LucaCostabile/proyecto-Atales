@@ -41,24 +41,35 @@ jobs:
           git fetch origin dev
           git checkout -b dev origin/dev
 
-      - name: Generar Secret YAML
+      - name: Instalar kubeseal
         run: |
-          {
-            echo "apiVersion: v1"
-            echo "kind: Secret"
-            echo "metadata:"
-            echo "  name: backend-secrets"
-            echo "  namespace: dev"
-            echo "type: Opaque"
-            echo "data:"
-            echo "  CRYPTO_SECRET: $(echo -n \"${{ secrets.CRYPTO_SECRET }}\" | base64)"
-            echo "  DB_PASSWORD: $(echo -n \"${{ secrets.DB_PASSWORD }}\" | base64)"
-            echo "  DB_USER: $(echo -n \"${{ secrets.DB_USER }}\" | base64)"
-            echo "  EXTERNAL_API_KEY: $(echo -n \"${{ secrets.EXTERNAL_API_KEY }}\" | base64)"
-            echo "  GMAIL_APP_PASSWORD: $(echo -n \"${{ secrets.GMAIL_APP_PASSWORD }}\" | base64)"
-            echo "  GMAIL_USER: $(echo -n \"${{ secrets.GMAIL_USER }}\" | base64)"
-            echo "  JWT_SECRET_KEY: $(echo -n \"${{ secrets.JWT_SECRET_KEY }}\" | base64)"
-          } > infra/secrets/dev/auth-secrets.yaml
+          wget https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.18.0/kubeseal-0.18.0-linux-amd64.tar.gz
+          tar -xvzf kubeseal-0.18.0-linux-amd64.tar.gz
+          sudo install -m 755 kubeseal /usr/local/bin/kubeseal
+
+      - name: Configurar kubectl para acceder al cluster
+        run: |
+          # Aquí necesitas configurar kubectl para acceder a tu cluster
+          # Ejemplo con kubeconfig desde secrets:
+          echo "${{ secrets.KUBECONFIG }}" | base64 -d > ~/.kube/config
+          chmod 600 ~/.kube/config
+          
+          # O si usas un método diferente, ajusta según tu configuración
+
+      - name: Generar Sealed Secret
+        run: |
+          # Crear un secret temporal
+          kubectl create secret generic backend-secrets \
+            --namespace=dev \
+            --from-literal=CRYPTO_SECRET="${{ secrets.CRYPTO_SECRET }}" \
+            --from-literal=DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
+            --from-literal=DB_USER="${{ secrets.DB_USER }}" \
+            --from-literal=EXTERNAL_API_KEY="${{ secrets.EXTERNAL_API_KEY }}" \
+            --from-literal=GMAIL_APP_PASSWORD="${{ secrets.GMAIL_APP_PASSWORD }}" \
+            --from-literal=GMAIL_USER="${{ secrets.GMAIL_USER }}" \
+            --from-literal=JWT_SECRET_KEY="${{ secrets.JWT_SECRET_KEY }}" \
+            --dry-run=client -o yaml | \
+          kubeseal -o yaml > infra/sealed-secrets/dev/auth-sealed-secrets.yaml
 
       - name: Commit y push al repo de infraestructura
         run: |
@@ -66,6 +77,10 @@ jobs:
           git config user.email "lucacostabile011@gmail.com"
           git config user.name "Luca Costabile CI"
           git pull --no-rebase origin dev
-          git add secrets/dev/auth-secrets.yaml
-          git commit -m "ci(auth): actualiza secretos"
+          
+          # Crear directorio si no existe
+          mkdir -p sealed-secrets/dev
+          
+          git add sealed-secrets/dev/auth-sealed-secrets.yaml
+          git commit -m "ci(auth): actualiza sealed secrets"
           git push origin dev
