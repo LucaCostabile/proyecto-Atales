@@ -73,7 +73,7 @@ const proxyOptions = {
     proxyReq.setHeader('X-Forwarded-Proto', req.protocol);
     
     // Manejo especial para body en POST/PUT
-    if (['POST', 'PUT'].includes(req.method) {
+    if (['POST', 'PUT'].includes(req.method)) {
       if (req.body && !req.bodyRead) {
         const bodyData = JSON.stringify(req.body);
         proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));

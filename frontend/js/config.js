@@ -91,9 +91,3 @@ console.log('🔧 Configuración API:', {
   apiBaseUrl: window.API_BASE_URL,
   isDevelopment: API_CONFIG.isDevelopment()
 });
-
-// Ejemplo de uso para registro:
-// window.apiRequest('/auth/register', {
-//   method: 'POST',
-//   body: { name: 'Juan', email: 'juan@example.com', password: 'segura123' }
-// });
