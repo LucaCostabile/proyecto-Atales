@@ -29,7 +29,6 @@ jobs:
           tags: |
             luca011/frontend-atales:${{ github.ref_name == 'main' && 'prod' || github.ref_name }}-latest
 
-      # Checkout del repo de infraestructura
       - name: Checkout repo infraestructura
         uses: actions/checkout@v3
         with:
@@ -37,7 +36,7 @@ jobs:
           path: infra
           token: ${{ secrets.PAT_GITHUB }}
 
-      - name: Cambiar a la rama correspondiente en infraestructura
+      - name: Cambiar a la rama correspondiente
         run: |
           cd infra
           BRANCH=${{ github.ref_name }}
@@ -84,27 +83,31 @@ jobs:
 
           echo "✅ Sealed secrets actualizado para $ENV"
 
-      # 🚀 Actualizar Deployment YAML con el nuevo tag de imagen
-      - name: Actualizar Deployment YAML
+      # 🚀 Actualizar imagen en kustomization.yaml del overlay
+      - name: Actualizar imagen en Kustomize
         run: |
           cd infra
 
           BRANCH=${{ github.ref_name }}
           ENV=$([[ "$BRANCH" == "main" ]] && echo "prod" || [[ "$BRANCH" == "test" ]] && echo "test" || echo "dev")
-          IMAGE_TAG="${ENV}-latest"
 
-          DEPLOY_FILE="k8s/$ENV/frontend-deployment.yaml"
+          KUSTOMIZE_FILE="overlays/$ENV/frontend/kustomization.yaml"
 
-          if [ ! -f "$DEPLOY_FILE" ]; then
-            echo "❌ Error: No se encontró el deployment $DEPLOY_FILE"
+          if [ ! -f "$KUSTOMIZE_FILE" ]; then
+            echo "❌ Error: No se encontró $KUSTOMIZE_FILE"
             exit 1
           fi
 
-          sed -i "s|image: luca011/frontend-atales:.*|image: luca011/frontend-atales:${IMAGE_TAG}|g" "$DEPLOY_FILE"
+          IMAGE_TAG="${ENV}-latest"
 
-          echo "✅ Deployment YAML actualizado con la imagen: luca011/frontend-atales:${IMAGE_TAG}"
+          echo "Actualizando imagen en $KUSTOMIZE_FILE a tag $IMAGE_TAG"
 
-      # Commit y push si hay cambios
+          # Usa sed para reemplazar la línea del newTag
+          sed -i "s|newTag: .*|newTag: ${IMAGE_TAG}|g" "$KUSTOMIZE_FILE"
+
+          echo "✅ Imagen actualizada en $KUSTOMIZE_FILE"
+
+      # Commit y push
       - name: Commit y push de cambios
         run: |
           cd infra
@@ -116,12 +119,12 @@ jobs:
           ENV=$([[ "$BRANCH" == "main" ]] && echo "prod" || [[ "$BRANCH" == "test" ]] && echo "test" || echo "dev")
 
           git pull --no-rebase origin $BRANCH
-          git add "sealed-secrets/$ENV/frontend-sealed-secrets.yaml" "k8s/$ENV/frontend-deployment.yaml"
+          git add "sealed-secrets/$ENV/frontend-sealed-secrets.yaml" "overlays/$ENV/frontend/kustomization.yaml"
 
           if ! git diff --cached --quiet; then
-            git commit -m "ci(frontend): actualiza sealed secrets e imagen Docker para $ENV"
+            git commit -m "ci(frontend): actualiza sealed secrets y despliegue imagen $IMAGE_TAG para $ENV"
             git push origin $BRANCH
-            echo "✅ Cambios en infraestructura actualizados para $ENV"
+            echo "✅ Cambios aplicados y enviados para $ENV"
           else
             echo "ℹ️ No hay cambios que commitear"
           fi
