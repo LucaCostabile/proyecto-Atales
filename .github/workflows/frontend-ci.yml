@@ -1,11 +1,14 @@
-name: CI - Frontend
+name: CI/CD - Frontend
 
 on:
   push:
-    branches: [ dev, test, main ]
+    branches: [dev, test, main]
     paths:
       - 'frontend/**'
       - '.github/workflows/frontend-ci.yml'
+
+env:
+  IMAGE_NAME: luca011/frontend-atales
 
 jobs:
   build-and-deploy:
@@ -14,6 +17,10 @@ jobs:
     steps:
       - name: Checkout código frontend
         uses: actions/checkout@v3
+
+      - name: Obtener fecha para tag
+        id: vars
+        run: echo "TAG=$(date +'%Y%m%d%H%M%S')" >> $GITHUB_ENV
 
       - name: Login a DockerHub
         uses: docker/login-action@v2
@@ -27,7 +34,7 @@ jobs:
           context: ./frontend
           push: true
           tags: |
-            luca011/frontend-atales:${{ github.ref_name == 'main' && 'prod' || github.ref_name }}-latest
+            ${{ env.IMAGE_NAME }}:${{ github.ref_name }}-${{ env.TAG }}
 
       - name: Checkout repo infraestructura
         uses: actions/checkout@v3
@@ -49,22 +56,12 @@ jobs:
           tar -xvzf kubeseal-0.18.0-linux-amd64.tar.gz
           sudo install -m 755 kubeseal /usr/local/bin/kubeseal
 
-      # 🔐 Actualizar Sealed Secrets
       - name: Actualizar Sealed Secrets
         run: |
           cd infra
-
-          BRANCH=${{ github.ref_name }}
-          ENV=$([[ "$BRANCH" == "main" ]] && echo "prod" || [[ "$BRANCH" == "test" ]] && echo "test" || echo "dev")
-
-          echo "Actualizando sealed secrets para $ENV"
+          ENV=$([[ "${{ github.ref_name }}" == "main" ]] && echo "prod" || [[ "${{ github.ref_name }}" == "test" ]] && echo "test" || echo "dev")
 
           mkdir -p "sealed-secrets/$ENV"
-
-          if [ ! -f "sealed-secrets-cert.pem" ]; then
-            echo "❌ Error: No se encontró sealed-secrets-cert.pem"
-            exit 1
-          fi
 
           cat > temp-secret.yaml << EOF
           apiVersion: v1
@@ -81,50 +78,36 @@ jobs:
           kubeseal --cert sealed-secrets-cert.pem -f temp-secret.yaml -w "sealed-secrets/$ENV/frontend-sealed-secrets.yaml"
           rm temp-secret.yaml
 
-          echo "✅ Sealed secrets actualizado para $ENV"
-
-      # 🚀 Actualizar imagen en kustomization.yaml del overlay
-      - name: Actualizar imagen en Kustomize
+      - name: Actualizar imagen en Kustomization
         run: |
           cd infra
-
-          BRANCH=${{ github.ref_name }}
-          ENV=$([[ "$BRANCH" == "main" ]] && echo "prod" || [[ "$BRANCH" == "test" ]] && echo "test" || echo "dev")
-
+          ENV=$([[ "${{ github.ref_name }}" == "main" ]] && echo "prod" || [[ "${{ github.ref_name }}" == "test" ]] && echo "test" || echo "dev")
           KUSTOMIZE_FILE="overlays/$ENV/frontend/kustomization.yaml"
 
           if [ ! -f "$KUSTOMIZE_FILE" ]; then
-            echo "❌ Error: No se encontró $KUSTOMIZE_FILE"
+            echo "❌ No se encuentra $KUSTOMIZE_FILE"
             exit 1
           fi
 
-          IMAGE_TAG="${ENV}-latest"
-
-          echo "Actualizando imagen en $KUSTOMIZE_FILE a tag $IMAGE_TAG"
-
-          # Usa sed para reemplazar la línea del newTag
-          sed -i "s|newTag: .*|newTag: ${IMAGE_TAG}|g" "$KUSTOMIZE_FILE"
+          sed -i "s|newTag: .*|newTag: ${{ github.ref_name }}-${{ env.TAG }}|g" "$KUSTOMIZE_FILE"
 
           echo "✅ Imagen actualizada en $KUSTOMIZE_FILE"
 
-      # Commit y push
-      - name: Commit y push de cambios
+      - name: Commit y push cambios
         run: |
           cd infra
-
           git config user.email "lucacostabile011@gmail.com"
           git config user.name "Luca Costabile CI"
 
           BRANCH=${{ github.ref_name }}
-          ENV=$([[ "$BRANCH" == "main" ]] && echo "prod" || [[ "$BRANCH" == "test" ]] && echo "test" || echo "dev")
-
           git pull --no-rebase origin $BRANCH
-          git add "sealed-secrets/$ENV/frontend-sealed-secrets.yaml" "overlays/$ENV/frontend/kustomization.yaml"
+
+          git add .
 
           if ! git diff --cached --quiet; then
-            git commit -m "ci(frontend): actualiza sealed secrets y despliegue imagen $IMAGE_TAG para $ENV"
+            git commit -m "ci(frontend): actualiza imagen a ${{ github.ref_name }}-${{ env.TAG }} y secretos"
             git push origin $BRANCH
-            echo "✅ Cambios aplicados y enviados para $ENV"
+            echo "✅ Cambios aplicados para $BRANCH"
           else
             echo "ℹ️ No hay cambios que commitear"
           fi
