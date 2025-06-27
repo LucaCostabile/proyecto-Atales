@@ -8,19 +8,20 @@ on:
       - '.github/workflows/frontend-ci.yml'
 
 jobs:
-  build-and-update-secrets:
+  build-and-deploy:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout código
+      - name: Checkout código frontend
         uses: actions/checkout@v3
 
-      - name: Log in to DockerHub
+      - name: Login a DockerHub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push frontend image
+      - name: Build y push de imagen Docker
         uses: docker/build-push-action@v5
         with:
           context: ./frontend
@@ -28,14 +29,15 @@ jobs:
           tags: |
             luca011/frontend-atales:${{ github.ref_name == 'main' && 'prod' || github.ref_name }}-latest
 
-      - name: Checkout repo de infraestructura
+      # Checkout del repo de infraestructura
+      - name: Checkout repo infraestructura
         uses: actions/checkout@v3
         with:
           repository: LucaCostabile/infrastructura-Atales
           path: infra
           token: ${{ secrets.PAT_GITHUB }}
 
-      - name: Cambiar a la rama correspondiente
+      - name: Cambiar a la rama correspondiente en infraestructura
         run: |
           cd infra
           BRANCH=${{ github.ref_name }}
@@ -48,29 +50,23 @@ jobs:
           tar -xvzf kubeseal-0.18.0-linux-amd64.tar.gz
           sudo install -m 755 kubeseal /usr/local/bin/kubeseal
 
-      - name: Actualizar Sealed Secrets (sin kubectl)
+      # 🔐 Actualizar Sealed Secrets
+      - name: Actualizar Sealed Secrets
         run: |
           cd infra
-          
-          # Determinar el ambiente basado en la rama
-          case "${{ github.ref_name }}" in
-            "main") ENV="prod" ;;
-            "test") ENV="test" ;;
-            *) ENV="dev" ;;
-          esac
-          
-          echo "Actualizando sealed secrets para ambiente: $ENV"
-          
+
+          BRANCH=${{ github.ref_name }}
+          ENV=$([[ "$BRANCH" == "main" ]] && echo "prod" || [[ "$BRANCH" == "test" ]] && echo "test" || echo "dev")
+
+          echo "Actualizando sealed secrets para $ENV"
+
           mkdir -p "sealed-secrets/$ENV"
-          
-          # Verificar que existe la clave pública
+
           if [ ! -f "sealed-secrets-cert.pem" ]; then
             echo "❌ Error: No se encontró sealed-secrets-cert.pem"
-            echo "Debes ejecutar el script de setup localmente primero"
             exit 1
           fi
-          
-          # Generar secret temporal en formato YAML (TLS)
+
           cat > temp-secret.yaml << EOF
           apiVersion: v1
           kind: Secret
@@ -82,32 +78,50 @@ jobs:
             tls.crt: $(echo -n "${{ secrets.TLS_CRT }}" | base64 -w 0)
             tls.key: $(echo -n "${{ secrets.TLS_KEY }}" | base64 -w 0)
           EOF
-          
-          # Convertir a sealed secret usando la clave pública
-          kubeseal --cert sealed-secrets-cert.pem -f temp-secret.yaml -w "sealed-secrets/$ENV/frontend-sealed-secrets.yaml"
-          
-          # Limpiar archivo temporal
-          rm temp-secret.yaml
-          
-          echo "✅ Sealed secret actualizado para ambiente $ENV"
 
-      - name: Commit y push cambios
+          kubeseal --cert sealed-secrets-cert.pem -f temp-secret.yaml -w "sealed-secrets/$ENV/frontend-sealed-secrets.yaml"
+          rm temp-secret.yaml
+
+          echo "✅ Sealed secrets actualizado para $ENV"
+
+      # 🚀 Actualizar Deployment YAML con el nuevo tag de imagen
+      - name: Actualizar Deployment YAML
         run: |
           cd infra
-          git config user.email "lucacostabile011@gmail.com"
-          git config user.name "Luca Costabile CI"
-          
+
           BRANCH=${{ github.ref_name }}
           ENV=$([[ "$BRANCH" == "main" ]] && echo "prod" || [[ "$BRANCH" == "test" ]] && echo "test" || echo "dev")
-          
+          IMAGE_TAG="${ENV}-latest"
+
+          DEPLOY_FILE="k8s/$ENV/frontend-deployment.yaml"
+
+          if [ ! -f "$DEPLOY_FILE" ]; then
+            echo "❌ Error: No se encontró el deployment $DEPLOY_FILE"
+            exit 1
+          fi
+
+          sed -i "s|image: luca011/frontend-atales:.*|image: luca011/frontend-atales:${IMAGE_TAG}|g" "$DEPLOY_FILE"
+
+          echo "✅ Deployment YAML actualizado con la imagen: luca011/frontend-atales:${IMAGE_TAG}"
+
+      # Commit y push si hay cambios
+      - name: Commit y push de cambios
+        run: |
+          cd infra
+
+          git config user.email "lucacostabile011@gmail.com"
+          git config user.name "Luca Costabile CI"
+
+          BRANCH=${{ github.ref_name }}
+          ENV=$([[ "$BRANCH" == "main" ]] && echo "prod" || [[ "$BRANCH" == "test" ]] && echo "test" || echo "dev")
+
           git pull --no-rebase origin $BRANCH
-          git add "sealed-secrets/$ENV/frontend-sealed-secrets.yaml"
-          
-          # Solo hacer commit si hay cambios
+          git add "sealed-secrets/$ENV/frontend-sealed-secrets.yaml" "k8s/$ENV/frontend-deployment.yaml"
+
           if ! git diff --cached --quiet; then
-            git commit -m "ci(frontend): actualiza sealed secrets para $ENV"
+            git commit -m "ci(frontend): actualiza sealed secrets e imagen Docker para $ENV"
             git push origin $BRANCH
-            echo "✅ Sealed secrets actualizados para ambiente $ENV"
+            echo "✅ Cambios en infraestructura actualizados para $ENV"
           else
-            echo "ℹ️ No hay cambios en los sealed secrets"
+            echo "ℹ️ No hay cambios que commitear"
           fi
