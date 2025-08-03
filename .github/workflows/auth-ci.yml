@@ -1,110 +1,74 @@
-  - name: Obtener fecha para tag
-    id: vars
-    run: echo "TAG=$(date +'%Y%m%d%H%M%S')" >> $GITHUB_ENV
+name: CI - Auth Service
 
-  - name: Log in to DockerHub
-    uses: docker/login-action@v2
-    with:
-      username: ${{ secrets.DOCKERHUB_USERNAME }}
-      password: ${{ secrets.DOCKERHUB_TOKEN }}
+on:
+  push:
+    branches: [ dev, test, main ]
+    paths:
+      - 'backend/auth-service/**'
+      - '.github/workflows/auth-ci.yml'
 
-  - name: Build and push auth-service image
-    uses: docker/build-push-action@v5
-    with:
-      context: ./backend/auth-service
-      push: true
-      tags: |
-        ${{ env.IMAGE_NAME }}:${{ github.ref_name }}-${{ env.TAG }}
+jobs:
+  build-and-update-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v3
 
-  - name: Checkout repo de infraestructura
-    uses: actions/checkout@v3
-    with:
-      repository: LucaCostabile/infrastructura-Atales
-      path: infra
-      token: ${{ secrets.PAT_GITHUB }}
+      - name: Log in to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-  - name: Cambiar a la rama correspondiente
-    run: |
-      cd infra
-      BRANCH=${{ github.ref_name }}
-      git fetch origin $BRANCH
-      git checkout -b $BRANCH origin/$BRANCH || git checkout $BRANCH
+      - name: Build and push auth-service image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend/auth-service
+          push: true
+          tags: |
+            luca011/auth-service-atales:${{ github.ref_name == 'main' && 'prod' || github.ref_name }}-latest
 
-  - name: Instalar kubeseal
-    run: |
-      wget https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.18.0/kubeseal-0.18.0-linux-amd64.tar.gz
-      tar -xvzf kubeseal-0.18.0-linux-amd64.tar.gz
-      sudo install -m 755 kubeseal /usr/local/bin/kubeseal
+      - name: Checkout repo de infraestructura
+        uses: actions/checkout@v3
+        with:
+          repository: LucaCostabile/infrastructura-Atales
+          path: infra
+          token: ${{ secrets.PAT_GITHUB }}
 
-  - name: Actualizar Sealed Secrets (sin kubectl)
-    run: |
-      cd infra
+      - name: Cambiar a la rama correspondiente
+        run: |
+          cd infra
+          BRANCH=${{ github.ref_name }}
+          git fetch origin $BRANCH
+          git checkout -b $BRANCH origin/$BRANCH || git checkout $BRANCH
 
-      case "${{ github.ref_name }}" in
-        "main") ENV="prod" ;;
-        "test") ENV="test" ;;
-        *) ENV="dev" ;;
-      esac
+      - name: Actualizar tag en el deployment de auth-service
+        run: |
+          cd infra
+          ENV=$([[ "${{ github.ref_name }}" == "main" ]] && echo "prod" || ([[ "${{ github.ref_name }}" == "test" ]] && echo "test" || echo "dev"))
+          DEPLOYMENT_FILE="deployment/auth-service-deployment.yaml"
 
-      echo "Actualizando sealed secrets para ambiente: $ENV"
+          echo "📦 Actualizando imagen en $DEPLOYMENT_FILE para entorno $ENV..."
 
-      mkdir -p "sealed-secrets/$ENV"
+          sed -i "s|image: luca011/auth-service-atales:.*|image: luca011/auth-service-atales:$ENV-latest|" "$DEPLOYMENT_FILE"
 
-      if [ ! -f "sealed-secrets-cert.pem" ]; then
-        echo "❌ Error: No se encontró sealed-secrets-cert.pem"
-        exit 1
-      fi
+          echo "✅ Imagen actualizada en $DEPLOYMENT_FILE"
 
-      cat > temp-secret.yaml << EOF
-      apiVersion: v1
-      kind: Secret
-      metadata:
-        name: backend-secrets
-        namespace: $ENV
-      type: Opaque
-      data:
-        CRYPTO_SECRET: $(echo -n "${{ secrets.CRYPTO_SECRET }}" | base64 -w 0)
-        DB_PASSWORD: $(echo -n "${{ secrets.DB_PASSWORD }}" | base64 -w 0)
-        DB_USER: $(echo -n "${{ secrets.DB_USER }}" | base64 -w 0)
-        GMAIL_APP_PASSWORD: $(echo -n "${{ secrets.GMAIL_APP_PASSWORD }}" | base64 -w 0)
-        GMAIL_USER: $(echo -n "${{ secrets.GMAIL_USER }}" | base64 -w 0)
-        JWT_SECRET_KEY: $(echo -n "${{ secrets.JWT_SECRET_KEY }}" | base64 -w 0)
-      EOF
+      - name: Commit y push cambios
+        run: |
+          cd infra
+          git config user.email "lucacostabile011@gmail.com"
+          git config user.name "Luca Costabile CI"
 
-      kubeseal --cert sealed-secrets-cert.pem -f temp-secret.yaml -w "sealed-secrets/$ENV/auth-sealed-secrets.yaml"
-      rm temp-secret.yaml
+          BRANCH=${{ github.ref_name }}
 
-  - name: Actualizar imagen en Deployment
-    run: |
-      cd infra
-      DEPLOY_FILE="base/auth-service/deployment-auth-service.yaml"
-      NEW_IMAGE="${{ env.IMAGE_NAME }}:${{ github.ref_name }}-${{ env.TAG }}"
+          git pull --no-rebase origin $BRANCH
+          git add deployment/auth-service-deployment.yaml
 
-      if [ ! -f "$DEPLOY_FILE" ]; then
-        echo "❌ No se encuentra $DEPLOY_FILE"
-        exit 1
-      fi
-
-      sed -i "s|^\(\s*image:\s*\).*|\1$NEW_IMAGE|g" "$DEPLOY_FILE"
-
-      echo "✅ Imagen actualizada en $DEPLOY_FILE"
-
-  - name: Commit y push cambios
-    run: |
-      cd infra
-      git config user.email "lucacostabile011@gmail.com"
-      git config user.name "Luca Costabile CI"
-
-      BRANCH=${{ github.ref_name }}
-      ENV=$([[ "$BRANCH" == "main" ]] && echo "prod" || [[ "$BRANCH" == "test" ]] && echo "test" || echo "dev")
-
-      git pull --no-rebase origin $BRANCH
-      git add "sealed-secrets/$ENV/auth-sealed-secrets.yaml" "base/auth-service/deployment-auth-service.yaml"
-
-      if ! git diff --cached --quiet; then
-        git commit -m "ci(auth): actualiza imagen a ${{ github.ref_name }}-${{ env.TAG }} y sealed secrets"
-        git push origin $BRANCH
-        echo "✅ Cambios aplicados para ambiente $ENV"
-      else
-        echo "ℹ️ No hay cambios que commitear"
-      fi
+          if ! git diff --cached --quiet; then
+            git commit -m "ci(auth): actualiza imagen a $BRANCH-latest"
+            git push origin $BRANCH
+            echo "✅ Cambios pushados"
+          else
+            echo "ℹ️ No hay cambios en el deployment"
+          fi
