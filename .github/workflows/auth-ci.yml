@@ -63,7 +63,7 @@ jobs:
           BRANCH=${{ github.ref_name }}
 
           git pull --no-rebase origin $BRANCH
-          git add deployment/auth-service-deployment.yaml
+          git add base/auth-service/deployment-auth-service.yaml
 
           if ! git diff --cached --quiet; then
             git commit -m "ci(auth): actualiza imagen a $BRANCH-latest"
