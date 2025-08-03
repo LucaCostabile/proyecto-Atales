@@ -46,7 +46,7 @@ jobs:
         run: |
           cd infra
           ENV=$([[ "${{ github.ref_name }}" == "main" ]] && echo "prod" || ([[ "${{ github.ref_name }}" == "test" ]] && echo "test" || echo "dev"))
-          DEPLOYMENT_FILE="deployment/auth-service-deployment.yaml"
+          DEPLOYMENT_FILE="deployment/deployment-auth-service.yaml"
 
           echo "📦 Actualizando imagen en $DEPLOYMENT_FILE para entorno $ENV..."
 
