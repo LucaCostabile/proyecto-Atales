@@ -78,20 +78,21 @@ jobs:
           kubeseal --cert sealed-secrets-cert.pem -f temp-secret.yaml -w "sealed-secrets/$ENV/frontend-sealed-secrets.yaml"
           rm temp-secret.yaml
 
-      - name: Actualizar imagen en Kustomization
+      - name: Actualizar imagen en Deployment
         run: |
           cd infra
-          ENV=$([[ "${{ github.ref_name }}" == "main" ]] && echo "prod" || [[ "${{ github.ref_name }}" == "test" ]] && echo "test" || echo "dev")
-          KUSTOMIZE_FILE="overlays/$ENV/frontend/kustomization.yaml"
+          DEPLOY_FILE="base/frontend/deployment-frontend.yaml"
+          NEW_IMAGE="${{ env.IMAGE_NAME }}:${{ github.ref_name }}-${{ env.TAG }}"
 
-          if [ ! -f "$KUSTOMIZE_FILE" ]; then
-            echo "❌ No se encuentra $KUSTOMIZE_FILE"
+          if [ ! -f "$DEPLOY_FILE" ]; then
+            echo "❌ No se encuentra $DEPLOY_FILE"
             exit 1
           fi
 
-          sed -i "s|newTag: .*|newTag: ${{ github.ref_name }}-${{ env.TAG }}|g" "$KUSTOMIZE_FILE"
+          # reemplaza la línea de image: con la nueva imagen y tag
+          sed -i "s|^\(\s*image:\s*\).*|\1$NEW_IMAGE|g" "$DEPLOY_FILE"
 
-          echo "✅ Imagen actualizada en $KUSTOMIZE_FILE"
+          echo "✅ Imagen actualizada en $DEPLOY_FILE"
 
       - name: Commit y push cambios
         run: |
