@@ -7,7 +7,7 @@ const sucursalesRoutes = require('./backend/sucursales');
 const app = express();
 const PORT = process.env.PORT || 3002;
 
-// Health check
+// Health checks
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'healthy', service: 'business-service' });
 });
@@ -37,3 +37,4 @@ app.listen(PORT, () => {
 });
 
 module.exports = app;
+
