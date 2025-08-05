@@ -2,7 +2,7 @@ name: CI - API Gateway
 
 on:
   push:
-    branches: [ dev, test, main ]
+    branches: [ dev, test, main, dev-v2 ]
     paths:
       - 'backend/api-gateway/**'
       - '.github/workflows/gateway-ci.yml'
