@@ -72,7 +72,7 @@ jobs:
           BRANCH=${{ github.ref_name }}
           git pull --no-rebase origin $BRANCH
 
-          git add overlays/auth-service/patch-deployment.yaml
+          git add overlays/dev/auth-service/patch-deployment.yaml
 
           if ! git diff --cached --quiet; then
             git commit -m "ci(auth): actualiza imagen a ${{ github.ref_name }}-${{ env.TAG }}"
