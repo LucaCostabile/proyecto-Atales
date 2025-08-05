@@ -9,7 +9,7 @@ const { checkMicroservicesHealth } = require('./health-checker');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// 🛡️ Validación defensiva de entornos
+// 🛡️ Validación defensiva de entornoss
 if (!process.env.AUTH_SERVICE_PORT) {
   console.error('❌ ENV ERROR: AUTH_SERVICE_PORT no está definido');
   process.exit(1); // Salir si falta variable crítica
@@ -211,4 +211,5 @@ process.on('SIGTERM', () => {
 });
 
 module.exports = app;
+
 
