@@ -81,7 +81,7 @@ jobs:
       - name: Actualizar imagen en Deployment
         run: |
           cd infra
-          DEPLOY_FILE="base/frontend/deployment-frontend.yaml"
+          DEPLOY_FILE="overlays/frontend/patch-deployment.yaml"
           NEW_IMAGE="${{ env.IMAGE_NAME }}:${{ github.ref_name }}-${{ env.TAG }}"
 
           if [ ! -f "$DEPLOY_FILE" ]; then
