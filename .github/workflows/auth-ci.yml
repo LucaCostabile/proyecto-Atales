@@ -52,7 +52,7 @@ jobs:
       - name: Actualizar imagen en el deployment de auth-service
         run: |
           cd infra
-          DEPLOY_FILE="base/auth-service/deployment-auth-service.yaml"
+          DEPLOY_FILE="overlays/auth-service/patch-deployment.yaml"
           NEW_IMAGE="${{ env.IMAGE_NAME }}:${{ github.ref_name }}-${{ env.TAG }}"
 
           if [ ! -f "$DEPLOY_FILE" ]; then
