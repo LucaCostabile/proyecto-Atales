@@ -49,6 +49,50 @@ jobs:
           git fetch origin $BRANCH
           git checkout $BRANCH || git checkout -b $BRANCH origin/$BRANCH
 
+      - name: Instalar kubeseal
+        run: |
+          wget https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.18.0/kubeseal-0.18.0-linux-amd64.tar.gz
+          tar -xvzf kubeseal-0.18.0-linux-amd64.tar.gz
+          sudo install -m 755 kubeseal /usr/local/bin/kubeseal
+
+      - name: Actualizar Sealed Secrets (sin kubectl)
+        run: |
+          cd infra
+          
+          # Determinar el ambiente basado en la rama
+          case "${{ github.ref_name }}" in
+            "main") ENV="prod" ;;
+            "test") ENV="test" ;;
+            *) ENV="dev" ;;
+          esac
+          
+          echo "Actualizando sealed secrets para ambiente: $ENV"
+          
+          mkdir -p "sealed-secrets/$ENV"
+          
+          if [ ! -f "sealed-secrets-cert.pem" ]; then
+            echo "❌ Error: No se encontró sealed-secrets-cert.pem"
+            exit 1
+          fi
+          
+          cat > temp-secret.yaml << EOF
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: backend-secrets
+            namespace: $ENV
+          type: Opaque
+          data:
+            JWT_SECRET_KEY: $(echo -n "${{ secrets.JWT_SECRET_KEY }}" | base64 -w 0)
+          EOF
+          
+          kubeseal --cert sealed-secrets-cert.pem -f temp-secret.yaml -w "sealed-secrets/$ENV/auth-sealed-secrets.yaml"
+          
+          rm temp-secret.yaml
+          
+          echo "✅ Sealed secret actualizado para ambiente $ENV"
+
+
       - name: Actualizar imagen en el deployment de auth-service
         run: |
           cd infra
