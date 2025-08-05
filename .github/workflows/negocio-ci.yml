@@ -96,7 +96,7 @@ jobs:
       - name: Actualizar imagen en Deployment
         run: |
           cd infra
-          DEPLOY_FILE="overlays/business-service/patch-deployment.yaml"
+          DEPLOY_FILE="overlays/dev/business-service/patch-deployment.yaml"
           NEW_IMAGE="${{ env.IMAGE_NAME }}:${{ github.ref_name }}-${{ env.TAG }}"
 
           if [ ! -f "$DEPLOY_FILE" ]; then
@@ -120,7 +120,7 @@ jobs:
           git pull --no-rebase origin $BRANCH
 
           git add "sealed-secrets/$ENV/negocio-sealed-secrets.yaml"
-          git add "overlays/business-service/patch-deployment.yaml"
+          git add "overlays/dev/business-service/patch-deployment.yaml"
 
           if ! git diff --cached --quiet; then
             git commit -m "ci(negocio): actualiza imagen a ${{ github.ref_name }}-${{ env.TAG }} y sealed secrets"
