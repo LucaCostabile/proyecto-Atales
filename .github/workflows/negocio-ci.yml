@@ -2,7 +2,7 @@ name: CI - Negocio Service
 
 on:
   push:
-    branches: [ dev, test, main ]
+    branches: [ dev, test, main, dev-v2 ]
     paths:
       - 'backend/negocio-service/**'
       - '.github/workflows/negocio-ci.yml'
