@@ -38,7 +38,7 @@ jobs:
       - name: Checkout repo de infraestructura
         uses: actions/checkout@v3
         with:
-          repository: LucaCostabile/infrastructura-Atales
+          repository: RocioMagnoni/atales-argocd-ent
           path: infra
           token: ${{ secrets.PAT_GITHUB }}
 
