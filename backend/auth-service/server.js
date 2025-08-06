@@ -6,7 +6,7 @@ const rest = require('./backend/rest');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Health checks
+// Health checksS
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'healthy', service: 'auth-service' });
 });
@@ -37,4 +37,5 @@ app.listen(PORT, () => {
 module.exports = app;
 
 //commit dev 1
+
 
